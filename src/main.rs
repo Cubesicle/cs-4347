@@ -40,6 +40,31 @@ struct NormalizedBookAuthors {
     author_id: usize,
 }
 
+//ID0000id,ssn,first_name,last_name,email,address,city,state,phone
+#[derive(Serialize, Deserialize, Debug)]
+struct Borrower {
+    #[serde(rename = "ID0000id")]
+    id: String,
+    ssn: String,
+    first_name: String,
+    last_name: String,
+    email: String,
+    address: String,
+    city: String,
+    state: String,
+    phone: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct NormalizedBorrower {
+    card_id: String,
+    ssn: String,
+    bname: String,
+    address: String,
+    phone: String,
+}
+
 fn main() -> Result<()> {
     let output_dir = Path::new("normalized");
     fs::create_dir_all(output_dir)?;
@@ -82,6 +107,19 @@ fn main() -> Result<()> {
                 author_id: *author_map.get(&author).unwrap(),
             })?;
         }
+    }
+
+    let mut borrowers_reader = Reader::from_path("borrowers.csv")?;
+    let mut borrowers_writer = Writer::from_path(output_dir.join("borrowers.csv"))?;
+    for result in borrowers_reader.deserialize() {
+        let record: Borrower = result?;
+        borrowers_writer.serialize(NormalizedBorrower {
+            card_id: record.id,
+            ssn: record.ssn,
+            bname: format!("{} {}", record.first_name, record.last_name),
+            address: record.address,
+            phone: record.phone,
+        })?;
     }
 
     Ok(())
