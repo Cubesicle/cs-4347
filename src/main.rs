@@ -1,3 +1,5 @@
+mod tests;
+
 use anyhow::Result;
 use csv::{Reader, Writer};
 use serde::{Deserialize, Serialize};
@@ -74,7 +76,7 @@ fn main() -> Result<()> {
 
     let mut authors_writer = Writer::from_path(output_dir.join("authors.csv"))?;
     let mut author_map: HashMap<String, usize> = HashMap::new();
-    let mut author_id = 1;
+    let mut author_id = 0;
 
     let mut book_authors_writer = Writer::from_path(output_dir.join("book_authors.csv"))?;
 
@@ -134,17 +136,35 @@ pub fn parse_authors(input: &str) -> impl Iterator<Item = String> + '_ {
     let delimiter = if has_semicolon { ';' } else { ',' };
 
     input.split(delimiter).filter_map(move |chunk| {
-        // 1. Strip role tags like "(editor)"
+        // 1. Smart Role Tag Stripping
         let mut clean_name = String::with_capacity(chunk.len());
-        let mut in_parens = false;
+        let mut chars = chunk.chars().peekable();
 
-        for c in chunk.chars() {
-            match c {
-                '(' => in_parens = true,
-                ')' => in_parens = false,
-                _ if !in_parens => clean_name.push(c),
-                _ => {}
+        while let Some(c) = chars.next() {
+            if c == '(' {
+                // Peek ahead to see if the parentheses hold a role or a valid name
+                let remaining: String = chars.clone().collect();
+                let lower = remaining.to_lowercase();
+
+                if lower.starts_with("editor")
+                    || lower.starts_with("translator")
+                    || lower.starts_with("illustrator")
+                    || lower.starts_with("narrator")
+                    || lower.starts_with("ed.")
+                    || lower.starts_with("eds.")
+                    || (lower.starts_with("co") && (lower.len() <= 3 || lower.starts_with("co-")))
+                {
+                    // It's a role tag: fast-forward the iterator to drop it.
+                    // This also naturally handles truncated tags missing the ')'
+                    while let Some(inner_c) = chars.next() {
+                        if inner_c == ')' {
+                            break;
+                        }
+                    }
+                    continue;
+                }
             }
+            clean_name.push(c);
         }
 
         let clean_name = clean_name.trim();
@@ -152,7 +172,7 @@ pub fn parse_authors(input: &str) -> impl Iterator<Item = String> + '_ {
             return None;
         }
 
-        // 2. Reformat "Last, First" and normalize whitespace
+        // 2. Reformat "Last, First" if semicolon-delimited, and normalize whitespace
         let normalized_name = if has_semicolon && clean_name.contains(',') {
             let mut parts = clean_name.splitn(2, ',');
             let last = parts.next().unwrap_or("").trim();
@@ -161,13 +181,16 @@ pub fn parse_authors(input: &str) -> impl Iterator<Item = String> + '_ {
             let first_norm = first.split_whitespace().collect::<Vec<_>>().join(" ");
             let last_norm = last.split_whitespace().collect::<Vec<_>>().join(" ");
 
-            format!("{} {}", first_norm, last_norm).trim().to_string()
+            format!("{} {}", first_norm, last_norm)
         } else {
             // Normal format: "First Last"
             clean_name.split_whitespace().collect::<Vec<_>>().join(" ")
         };
 
-        // 3. Apply titlecase before yielding
-        Some(titlecase(&normalized_name))
+        // Remove any lingering structural commas
+        let final_clean = normalized_name.replace(',', "");
+
+        // 3. Apply titlecase crate
+        Some(titlecase(final_clean.trim()))
     })
 }
