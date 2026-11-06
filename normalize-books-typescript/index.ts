@@ -28,14 +28,14 @@ const borrowersWriter = (() => {
 const pipeline = Readable.from(borrowersReader)
     .pipe(parser) // Run it through the CSV parser
     .pipe(
-        // Make it match the schema
+        // Make it match the schema (we use snake_case for column names, not whatever bs naming convention is used in the pdf)
         transform((row: Borrower) => {
             return {
-                Card_id: row.ID0000id,
-                Ssn: row.ssn,
-                Bname: `${row.first_name} ${row.last_name}`,
-                Address: [row.address, row.city, row.state].join(", "),
-                Phone: row.phone,
+                card_id: row.ID0000id,
+                ssn: row.ssn,
+                bname: `${row.first_name} ${row.last_name}`,
+                address: [row.address, row.city, row.state].join(", "),
+                phone: row.phone,
             };
         }),
     )
