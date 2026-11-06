@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-# idk
+bun --cwd=normalize-books-typescript install
+bun run ./normalize-books-typescript/index.ts

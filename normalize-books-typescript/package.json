@@ -1,15 +1,19 @@
 {
-  "name": "normalize-books-typescript",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "typecheck": "bun check"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^7"
-  }
+    "name": "normalize-books-typescript",
+    "module": "index.ts",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "typecheck": "bun check"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.6.5",
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^7"
+    },
+    "dependencies": {
+        "csv": "^6.6.4"
+    }
 }
