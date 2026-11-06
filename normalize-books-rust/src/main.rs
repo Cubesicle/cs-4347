@@ -20,29 +20,23 @@ struct Book {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
 struct NormalizedBook {
-    #[serde(rename = "ISBN13")]
     isbn13: String,
     title: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
 struct NormalizedAuthor {
     id: usize,
     name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
 struct NormalizedBookAuthors {
-    #[serde(rename = "ISBN13")]
     isbn13: String,
     author_id: usize,
 }
 
-//ID0000id,ssn,first_name,last_name,email,address,city,state,phone
 #[derive(Serialize, Deserialize, Debug)]
 struct Borrower {
     #[serde(rename = "ID0000id")]
@@ -58,7 +52,6 @@ struct Borrower {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
 struct NormalizedBorrower {
     card_id: String,
     ssn: String,
@@ -119,7 +112,7 @@ fn main() -> Result<()> {
             card_id: record.id,
             ssn: record.ssn,
             bname: format!("{} {}", record.first_name, record.last_name),
-            address: record.address,
+            address: format!("{}, {}, {}", record.address, record.city, record.state),
             phone: record.phone,
         })?;
     }
