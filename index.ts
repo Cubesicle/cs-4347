@@ -42,7 +42,11 @@ const authorIds = new Map<string, number>();
 
 // Ensures author names use consistent keys in the map.
 function normalizeAuthorKey(author: string): string {
-    return author.trim().replace(/\s+/g, " ").normalize("NFC").toLowerCase();
+    return author
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .replace(/\s+/g, " ");
 }
 
 function formatAuthors(authorEntry: string): string[] {
