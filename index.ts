@@ -126,18 +126,18 @@ async function processCsvFile<TInput = unknown, TOutput = unknown>(
 
 function mapBorrower(row: Borrower) {
     return {
-        Card_id: row.ID0000id,
-        Ssn: row.ssn,
-        Bname: `${row.first_name} ${row.last_name}`,
-        Address: [row.address, row.city, row.state].join(", "),
-        Phone: row.phone,
+        card_id: row.ID0000id,
+        ssn: row.ssn,
+        bname: `${row.first_name} ${row.last_name}`,
+        address: [row.address, row.city, row.state].join(", "),
+        phone: row.phone,
     };
 }
 
 function mapBook(row: Book) {
     return {
-        Isbn: row.ISBN13,
-        Title: row.Title,
+        isbn: row.ISBN13,
+        title: row.Title,
     };
 }
 
@@ -164,8 +164,8 @@ function createAuthorsTransform(): Transform {
                 authorIds.set(normalizedName, authorId);
 
                 this.push({
-                    Author_id: authorId,
-                    Name: name,
+                    author_id: authorId,
+                    name: name,
                 });
             }
 
@@ -201,8 +201,8 @@ function createBookAuthorsTransform(): Transform {
                 }
 
                 this.push({
-                    Isbn: row.ISBN13,
-                    Author_id: authorId,
+                    isbn: row.ISBN13,
+                    author_id: authorId,
                 });
             }
 
@@ -236,7 +236,7 @@ async function normalizeAuthors(inputPath = PATHS.input.books, outputPath = PATH
 }
 
 // Normalizes data into book_authors.csv
-async function normalizeBook_Authors(
+async function normalizeBookAuthors(
     inputPath = PATHS.input.books,
     outputPath = PATHS.output.bookAuthors,
 ) {
@@ -251,7 +251,7 @@ async function main() {
 
     // Must run before normalizeBook_Authors.
     await normalizeAuthors();
-    await normalizeBook_Authors();
+    await normalizeBookAuthors();
 
     console.log("All Files Complete!");
 }
