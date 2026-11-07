@@ -61,12 +61,10 @@ function formatAuthors(authorEntry: string): string[] {
             }
         }
     } else {
-        authors.push(
-            ...cleanedEntry.split(",").map(author => author.trim())
-        );
+        authors.push(...cleanedEntry.split(",").map((author) => author.trim()));
     }
 
-    return authors.filter(author => author.length > 0);
+    return authors.filter((author) => author.length > 0);
 }
 
 // Normalizes data into borrowers.csv
@@ -254,9 +252,7 @@ async function normalizeBook_Authors() {
                 const authorId = authorIds.get(normalizedName);
 
                 if (authorId === undefined) {
-                    callback(
-                        new Error(`Author ID not found for: "${author}"`)
-                    );
+                    callback(new Error(`Author ID not found for: "${author}"`));
                     return;
                 }
 
