@@ -167,7 +167,7 @@ async function normalizeAuthors() {
     // Reset the shared map in case this function is run again.
     authorIds.clear();
 
-    let nextAuthorId = 1;
+    let nextAuthorId = 0;
 
     const authorTransform = new Transform({
         objectMode: true,
