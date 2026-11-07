@@ -1,6 +1,22 @@
 import { Readable, Transform } from "node:stream";
 import { parse, stringify, transform } from "csv";
 
+const INPUT_DIR = "./data-original";
+const OUTPUT_DIR = "./data-normalized";
+
+const PATHS = {
+    input: {
+        borrowers: `${INPUT_DIR}/borrowers.csv`,
+        books: `${INPUT_DIR}/books.csv`,
+    },
+    output: {
+        borrowers: `${OUTPUT_DIR}/borrowers.csv`,
+        books: `${OUTPUT_DIR}/books.csv`,
+        authors: `${OUTPUT_DIR}/authors.csv`,
+        bookAuthors: `${OUTPUT_DIR}/book_authors.csv`,
+    },
+};
+
 interface Borrower {
     ID0000id: string;
     ssn: string;
@@ -30,7 +46,7 @@ function normalizeAuthorKey(author: string): string {
 }
 
 function formatAuthors(authorEntry: string): string[] {
-    if (!authorEntry || !authorEntry.trim()) {
+    if (!authorEntry?.trim()) {
         return [];
     }
 
@@ -67,112 +83,71 @@ function formatAuthors(authorEntry: string): string[] {
     return authors.filter((author) => author.length > 0);
 }
 
-// Normalizes data into borrowers.csv
-async function normalizeBorrowers() {
-    const parser = parse({
+function createCsvParser() {
+    return parse({
         columns: true,
         skip_empty_lines: true,
         trim: true,
     });
-
-    const borrowersReader = Bun.file("./data-original/borrowers.csv").stream();
-
-    const path = "./data-normalized/borrowers.csv";
-    await Bun.write(path, "");
-    const borrowersWriter = Bun.file(path).writer();
-
-    const pipeline = Readable.from(borrowersReader)
-        .pipe(parser)
-        .pipe(
-            transform((row: Borrower) => {
-                return {
-                    Card_id: row.ID0000id,
-                    Ssn: row.ssn,
-                    Bname: `${row.first_name} ${row.last_name}`,
-                    Address: [row.address, row.city, row.state].join(", "),
-                    Phone: row.phone,
-                };
-            }),
-        )
-        .pipe(
-            stringify({
-                header: true,
-                quoted: false,
-            }),
-        );
-
-    for await (const chunk of pipeline) {
-        borrowersWriter.write(chunk);
-    }
-
-    borrowersWriter.end();
-
-    console.log("borrowers.csv finished");
 }
 
-// Normalizes data into books.csv
-async function normalizeBooks() {
-    const parser = parse({
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
+function createCsvStringifier() {
+    return stringify({
+        header: true,
+        quoted: false,
     });
-
-    const booksReader = Bun.file("./data-original/books.csv").stream();
-
-    const path = "./data-normalized/books.csv";
-    await Bun.write(path, "");
-    const booksWriter = Bun.file(path).writer();
-
-    const pipeline = Readable.from(booksReader)
-        .pipe(parser)
-        .pipe(
-            transform((row: Book) => {
-                return {
-                    Isbn: row.ISBN13,
-                    Title: row.Title,
-                };
-            }),
-        )
-        .pipe(
-            stringify({
-                header: true,
-                quoted: false,
-            }),
-        );
-
-    for await (const chunk of pipeline) {
-        booksWriter.write(chunk);
-    }
-
-    booksWriter.end();
-
-    console.log("books.csv finished");
 }
 
-// Normalizes data into authors.csv
-async function normalizeAuthors() {
-    const parser = parse({
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-    });
+// Streams a CSV file from inputPath, transforms rows using the given transformer,
+// and writes the result to outputPath as a CSV file.
+async function processCsvFile<TInput = unknown, TOutput = unknown>(
+    inputPath: string,
+    outputPath: string,
+    transformer: Transform | ((row: TInput) => TOutput),
+): Promise<void> {
+    const transformStream =
+        typeof transformer === "function" ? transform(transformer) : transformer;
 
-    const booksReader = Bun.file("./data-original/books.csv").stream();
+    const reader = Bun.file(inputPath).stream();
+    await Bun.write(outputPath, "");
+    const writer = Bun.file(outputPath).writer();
 
-    const path = "./data-normalized/authors.csv";
-    await Bun.write(path, "");
-    const booksWriter = Bun.file(path).writer();
+    const pipeline = Readable.from(reader)
+        .pipe(createCsvParser())
+        .pipe(transformStream)
+        .pipe(createCsvStringifier());
 
-    // Reset the shared map in case this function is run again.
-    authorIds.clear();
+    for await (const chunk of pipeline) {
+        writer.write(chunk);
+    }
 
+    writer.end();
+}
+
+function mapBorrower(row: Borrower) {
+    return {
+        Card_id: row.ID0000id,
+        Ssn: row.ssn,
+        Bname: `${row.first_name} ${row.last_name}`,
+        Address: [row.address, row.city, row.state].join(", "),
+        Phone: row.phone,
+    };
+}
+
+function mapBook(row: Book) {
+    return {
+        Isbn: row.ISBN13,
+        Title: row.Title,
+    };
+}
+
+function createAuthorsTransform(): Transform {
     let nextAuthorId = 0;
 
-    const authorTransform = new Transform({
+    return new Transform({
         objectMode: true,
 
-        transform(row: Book, encoding, callback) {
+        transform(row: Book, _encoding, callback) {
             const authors = formatAuthors(row.Author);
 
             for (const author of authors) {
@@ -197,44 +172,13 @@ async function normalizeAuthors() {
             callback();
         },
     });
-
-    const pipeline = Readable.from(booksReader)
-        .pipe(parser)
-        .pipe(authorTransform)
-        .pipe(
-            stringify({
-                header: true,
-                quoted: false,
-            }),
-        );
-
-    for await (const chunk of pipeline) {
-        booksWriter.write(chunk);
-    }
-
-    booksWriter.end();
-
-    console.log("authors.csv finished");
 }
 
-// Normalizes data into book_authors.csv
-async function normalizeBook_Authors() {
-    const parser = parse({
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-    });
-
-    const booksReader = Bun.file("./data-original/books.csv").stream();
-
-    const path = "./data-normalized/book_authors.csv";
-    await Bun.write(path, "");
-    const booksWriter = Bun.file(path).writer();
-
-    const bookAuthorsTransform = new Transform({
+function createBookAuthorsTransform(): Transform {
+    return new Transform({
         objectMode: true,
 
-        transform(row: Book, encoding, callback) {
+        transform(row: Book, _encoding, callback) {
             const authors = formatAuthors(row.Author);
 
             // Prevent duplicate relationships within the same book.
@@ -265,23 +209,38 @@ async function normalizeBook_Authors() {
             callback();
         },
     });
+}
 
-    const pipeline = Readable.from(booksReader)
-        .pipe(parser)
-        .pipe(bookAuthorsTransform)
-        .pipe(
-            stringify({
-                header: true,
-                quoted: false,
-            }),
-        );
+// Normalizes data into borrowers.csv
+async function normalizeBorrowers(
+    inputPath = PATHS.input.borrowers,
+    outputPath = PATHS.output.borrowers,
+) {
+    await processCsvFile(inputPath, outputPath, mapBorrower);
+    console.log("borrowers.csv finished");
+}
 
-    for await (const chunk of pipeline) {
-        booksWriter.write(chunk);
-    }
+// Normalizes data into books.csv
+async function normalizeBooks(inputPath = PATHS.input.books, outputPath = PATHS.output.books) {
+    await processCsvFile(inputPath, outputPath, mapBook);
+    console.log("books.csv finished");
+}
 
-    booksWriter.end();
+// Normalizes data into authors.csv
+async function normalizeAuthors(inputPath = PATHS.input.books, outputPath = PATHS.output.authors) {
+    // Reset the shared map in case this function is run again.
+    authorIds.clear();
 
+    await processCsvFile(inputPath, outputPath, createAuthorsTransform());
+    console.log("authors.csv finished");
+}
+
+// Normalizes data into book_authors.csv
+async function normalizeBook_Authors(
+    inputPath = PATHS.input.books,
+    outputPath = PATHS.output.bookAuthors,
+) {
+    await processCsvFile(inputPath, outputPath, createBookAuthorsTransform());
     console.log("book_authors.csv finished");
 }
 
