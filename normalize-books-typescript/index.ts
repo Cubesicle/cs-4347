@@ -75,9 +75,9 @@ async function normalizeBorrowers() {
         trim: true,
     });
 
-    const borrowersReader = Bun.file("./borrowers.csv").stream();
+    const borrowersReader = Bun.file("./data-original/borrowers.csv").stream();
 
-    const path = "./normalized/borrowers.csv";
+    const path = "./data-normalized/borrowers.csv";
     await Bun.write(path, "");
     const borrowersWriter = Bun.file(path).writer();
 
@@ -118,9 +118,9 @@ async function normalizeBooks() {
         trim: true,
     });
 
-    const booksReader = Bun.file("./books.csv").stream();
+    const booksReader = Bun.file("./data-original/books.csv").stream();
 
-    const path = "./normalized/books.csv";
+    const path = "./data-normalized/books.csv";
     await Bun.write(path, "");
     const booksWriter = Bun.file(path).writer();
 
@@ -158,9 +158,9 @@ async function normalizeAuthors() {
         trim: true,
     });
 
-    const booksReader = Bun.file("./books.csv").stream();
+    const booksReader = Bun.file("./data-original/books.csv").stream();
 
-    const path = "./normalized/authors.csv";
+    const path = "./data-normalized/authors.csv";
     await Bun.write(path, "");
     const booksWriter = Bun.file(path).writer();
 
@@ -225,9 +225,9 @@ async function normalizeBook_Authors() {
         trim: true,
     });
 
-    const booksReader = Bun.file("./books.csv").stream();
+    const booksReader = Bun.file("./data-original/books.csv").stream();
 
-    const path = "./normalized/book_authors.csv";
+    const path = "./data-normalized/book_authors.csv";
     await Bun.write(path, "");
     const booksWriter = Bun.file(path).writer();
 

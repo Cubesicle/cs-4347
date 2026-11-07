@@ -61,10 +61,12 @@ struct NormalizedBorrower {
 }
 
 fn main() -> Result<()> {
-    let output_dir = Path::new("normalized");
+    let input_dir = Path::new("data-original");
+
+    let output_dir = Path::new("data-normalized");
     fs::create_dir_all(output_dir)?;
 
-    let mut books_reader = Reader::from_path("books.csv")?;
+    let mut books_reader = Reader::from_path(input_dir.join("books.csv"))?;
     let mut books_writer = Writer::from_path(output_dir.join("books.csv"))?;
 
     let mut authors_writer = Writer::from_path(output_dir.join("authors.csv"))?;
@@ -104,7 +106,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let mut borrowers_reader = Reader::from_path("borrowers.csv")?;
+    let mut borrowers_reader = Reader::from_path(input_dir.join("borrowers.csv"))?;
     let mut borrowers_writer = Writer::from_path(output_dir.join("borrowers.csv"))?;
     for result in borrowers_reader.deserialize() {
         let record: Borrower = result?;
