@@ -1,10 +1,12 @@
 import { Readable, Transform } from "node:stream";
 import { parse, stringify, transform } from "csv";
+import { titleCase } from "title-case";
 
+// File paths configuration
 const INPUT_DIR = "./data-original";
 const OUTPUT_DIR = "./data-normalized";
 
-const PATHS = {
+export const PATHS = {
     input: {
         borrowers: `${INPUT_DIR}/borrowers.csv`,
         books: `${INPUT_DIR}/books.csv`,
@@ -17,7 +19,7 @@ const PATHS = {
     },
 };
 
-interface Borrower {
+export interface Borrower {
     ID0000id: string;
     ssn: string;
     first_name: string;
@@ -28,7 +30,7 @@ interface Borrower {
     phone: string;
 }
 
-interface Book {
+export interface Book {
     ISBN10: string;
     ISBN13: string;
     Title: string;
@@ -40,54 +42,78 @@ interface Book {
 // Maps normalized author names to their IDs.
 const authorIds = new Map<string, number>();
 
-// Ensures author names use consistent keys in the map.
-function normalizeAuthorKey(author: string): string {
-    return author
+// Normalizes and title-cases a single author name.
+export function normalizeAuthorName(name: string): string {
+    const cleaned = name
+        // Decompose accented characters and strip combining diacritical marks (\u0300-\u036F).
         .normalize("NFKD")
         .replace(/[\u0300-\u036f]/g, "")
-        .trim()
-        .replace(/\s+/g, " ");
+        // Strip zero-width spaces/joiners (\u200B-\u200D), BOM (\uFEFF), and soft hyphens (\u00AD).
+        .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, "")
+        // Collapse multiple spaces/tabs into a single space.
+        .replace(/\s+/g, " ")
+        // Strip outer quotes and boundary punctuation, preserving periods for initials/titles.
+        .replace(/^[\s"'`´,;:/-]+|[\s"'`´,;:/-]+$/g, "")
+        // Strip dangling boundary conjunctions (e.g. "And Lamb" -> "Lamb").
+        .replace(/^(?:and|&)\s+|\s+(?:and|&)$/i, "")
+        .trim();
+
+    // Discard any token that contains no Unicode letters (\p{L}) or digits (\p{N}).
+    if (!cleaned || !/\p{L}|\p{N}/u.test(cleaned)) {
+        return "";
+    }
+
+    // Lowercase only if all letters are uppercase (\p{Lu}) to title-case all-caps names while
+    // preserving proper casing for Celtic/Italian surnames and initials (e.g. "McCaffrey", "J.K.").
+    const isAllUpper = cleaned === cleaned.toUpperCase() && /\p{Lu}/u.test(cleaned);
+    return titleCase(isAllUpper ? cleaned.toLowerCase() : cleaned).trim();
 }
 
-function formatAuthors(authorEntry: string): string[] {
+// Inverts "LastName, FirstName" in semicolon-separated parts into "FirstName LastName".
+export function parseSemicolonPart(part: string): string {
+    const trimmed = part.trim();
+    const [last, first, ...extra] = trimmed.split(",").map((s) => s.trim());
+    return first && last && extra.length === 0 ? `${first} ${last}` : trimmed;
+}
+
+export function formatAuthors(authorEntry: string): string[] {
     if (!authorEntry?.trim()) {
         return [];
     }
 
-    const cleanedEntry = authorEntry.replace(/"/g, "").trim();
-    const authors: string[] = [];
+    const cleaned = authorEntry
+        .replace(/"/g, "")
+        // Strip parenthetical annotations and truncated/unclosed opening parentheses (e.g. "(editor)", "(Co").
+        .replace(/\([^)]*(?:\)|$)/g, "")
+        .replace(/^[\s,;:/-]+|[\s,;:/-]+$/g, "")
+        .trim();
 
-    if (cleanedEntry.includes(";")) {
-        const parts = cleanedEntry.split(";");
-
-        for (const part of parts) {
-            const trimmedPart = part.trim();
-
-            if (!trimmedPart) {
-                continue;
-            }
-
-            const commaParts = trimmedPart.split(",");
-
-            if (commaParts.length === 2) {
-                const lastName = commaParts[0]?.trim();
-                const firstName = commaParts[1]?.trim();
-
-                if (lastName && firstName) {
-                    authors.push(`${firstName} ${lastName}`);
-                }
-            } else {
-                authors.push(trimmedPart);
-            }
-        }
-    } else {
-        authors.push(...cleanedEntry.split(",").map((author) => author.trim()));
+    if (!cleaned) {
+        return [];
     }
 
-    return authors.filter((author) => author.length > 0);
+    const rawParts = cleaned.includes(";")
+        ? cleaned.split(";").map(parseSemicolonPart)
+        : cleaned.split(",");
+
+    const seen = new Set<string>();
+    const authors: string[] = [];
+
+    for (const raw of rawParts) {
+        // Split co-authors separated by "and" or "&" surrounded by whitespace.
+        for (const sub of raw.split(/\s+(?:&|and)\s+/i)) {
+            const normalized = normalizeAuthorName(sub);
+            if (normalized && !seen.has(normalized)) {
+                seen.add(normalized);
+                authors.push(normalized);
+            }
+        }
+    }
+
+    return authors;
 }
 
-function createCsvParser() {
+export function createCsvParser() {
     return parse({
         columns: true,
         skip_empty_lines: true,
@@ -95,7 +121,7 @@ function createCsvParser() {
     });
 }
 
-function createCsvStringifier() {
+export function createCsvStringifier() {
     return stringify({
         header: true,
         quoted: false,
@@ -104,7 +130,7 @@ function createCsvStringifier() {
 
 // Streams a CSV file from inputPath, transforms rows using the given transformer,
 // and writes the result to outputPath as a CSV file.
-async function processCsvFile<TInput = unknown, TOutput = unknown>(
+export async function processCsvFile<TInput = unknown, TOutput = unknown>(
     inputPath: string,
     outputPath: string,
     transformer: Transform | ((row: TInput) => TOutput),
@@ -128,7 +154,7 @@ async function processCsvFile<TInput = unknown, TOutput = unknown>(
     writer.end();
 }
 
-function mapBorrower(row: Borrower) {
+export function mapBorrower(row: Borrower) {
     return {
         card_id: row.ID0000id,
         ssn: row.ssn,
@@ -138,38 +164,31 @@ function mapBorrower(row: Borrower) {
     };
 }
 
-function mapBook(row: Book) {
+export function mapBook(row: Book) {
     return {
         isbn: row.ISBN13,
         title: row.Title,
     };
 }
 
-function createAuthorsTransform(): Transform {
+export function createAuthorsTransform(): Transform {
     let nextAuthorId = 0;
 
     return new Transform({
         objectMode: true,
 
         transform(row: Book, _encoding, callback) {
-            const authors = formatAuthors(row.Author);
-
-            for (const author of authors) {
-                const name = author.trim();
-                const normalizedName = normalizeAuthorKey(name);
-
-                if (!name || authorIds.has(normalizedName)) {
+            for (const author of formatAuthors(row.Author)) {
+                if (authorIds.has(author)) {
                     continue;
                 }
 
                 const authorId = nextAuthorId++;
-
-                // Store the author ID in the shared map.
-                authorIds.set(normalizedName, authorId);
+                authorIds.set(author, authorId);
 
                 this.push({
                     author_id: authorId,
-                    name: name,
+                    name: author,
                 });
             }
 
@@ -178,26 +197,13 @@ function createAuthorsTransform(): Transform {
     });
 }
 
-function createBookAuthorsTransform(): Transform {
+export function createBookAuthorsTransform(): Transform {
     return new Transform({
         objectMode: true,
 
         transform(row: Book, _encoding, callback) {
-            const authors = formatAuthors(row.Author);
-
-            // Prevent duplicate relationships within the same book.
-            const processedAuthors = new Set<string>();
-
-            for (const author of authors) {
-                const normalizedName = normalizeAuthorKey(author);
-
-                if (processedAuthors.has(normalizedName)) {
-                    continue;
-                }
-
-                processedAuthors.add(normalizedName);
-
-                const authorId = authorIds.get(normalizedName);
+            for (const author of formatAuthors(row.Author)) {
+                const authorId = authorIds.get(author);
 
                 if (authorId === undefined) {
                     callback(new Error(`Author ID not found for: "${author}"`));
@@ -216,7 +222,7 @@ function createBookAuthorsTransform(): Transform {
 }
 
 // Normalizes data into borrowers.csv
-async function normalizeBorrowers(
+export async function normalizeBorrowers(
     inputPath = PATHS.input.borrowers,
     outputPath = PATHS.output.borrowers,
 ) {
@@ -225,13 +231,19 @@ async function normalizeBorrowers(
 }
 
 // Normalizes data into books.csv
-async function normalizeBooks(inputPath = PATHS.input.books, outputPath = PATHS.output.books) {
+export async function normalizeBooks(
+    inputPath = PATHS.input.books,
+    outputPath = PATHS.output.books,
+) {
     await processCsvFile(inputPath, outputPath, mapBook);
     console.log("books.csv finished");
 }
 
 // Normalizes data into authors.csv
-async function normalizeAuthors(inputPath = PATHS.input.books, outputPath = PATHS.output.authors) {
+export async function normalizeAuthors(
+    inputPath = PATHS.input.books,
+    outputPath = PATHS.output.authors,
+) {
     // Reset the shared map in case this function is run again.
     authorIds.clear();
 
@@ -240,7 +252,7 @@ async function normalizeAuthors(inputPath = PATHS.input.books, outputPath = PATH
 }
 
 // Normalizes data into book_authors.csv
-async function normalizeBookAuthors(
+export async function normalizeBookAuthors(
     inputPath = PATHS.input.books,
     outputPath = PATHS.output.bookAuthors,
 ) {
@@ -249,15 +261,17 @@ async function normalizeBookAuthors(
 }
 
 // Run all normalization functions in the correct order.
-async function main() {
+export async function main() {
     await normalizeBorrowers();
     await normalizeBooks();
 
-    // Must run before normalizeBook_Authors.
+    // Must run before normalizeBookAuthors.
     await normalizeAuthors();
     await normalizeBookAuthors();
 
     console.log("All Files Complete!");
 }
 
-await main();
+if (import.meta.main) {
+    await main();
+}
