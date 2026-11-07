@@ -18,6 +18,4 @@ To type check:
 bun check
 ```
 
-Run `bun fmt` to format the code.
-
-This project was created using `bun init` in bun v1.4.4. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+`./data-original/` contains the original data that will be parsed by the program. After running, `./data-normalized/` will be created containing the normalized data.
