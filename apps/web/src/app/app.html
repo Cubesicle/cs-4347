@@ -1,0 +1,35 @@
+<main class="container">
+    <header class="header">
+        <h1>{{ title }}</h1>
+        @if (!loading() && !error()) {
+            <p class="count">{{ books().length }} books in database</p>
+        }
+    </header>
+
+    @if (loading()) {
+        <p class="status">Loading books...</p>
+    } @else if (error(); as message) {
+        <p class="status error" role="alert">{{ message }}</p>
+    } @else if (books().length === 0) {
+        <p class="status">No books found. Run the database importer to populate the books table.</p>
+    } @else {
+        <table class="books-table">
+            <thead>
+                <tr>
+                    <th scope="col">ISBN</th>
+                    <th scope="col">Title</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (book of books(); track book.isbn) {
+                    <tr>
+                        <td class="isbn">{{ book.isbn }}</td>
+                        <td>{{ book.title }}</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <router-outlet></router-outlet>
+</main>

@@ -1,0 +1,45 @@
+{
+    "name": "db-import",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "projectType": "application",
+    "sourceRoot": "apps/db-import/src",
+    "tags": ["scope:data", "type:app"],
+    "targets": {
+        "import": {
+            "executor": "nx:run-commands",
+            "cache": false,
+            "options": {
+                "command": "bun run apps/db-import/src/index.ts",
+                "cwd": "{workspaceRoot}"
+            }
+        },
+        "build": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["production", "^production"],
+            "outputs": ["{workspaceRoot}/dist/apps/db-import"],
+            "options": {
+                "command": "bun build apps/db-import/src/index.ts --outdir dist/apps/db-import --target bun",
+                "cwd": "{workspaceRoot}"
+            }
+        },
+        "typecheck": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["default", "^production"],
+            "options": {
+                "command": "bunx tsc --noEmit -p apps/db-import/tsconfig.json",
+                "cwd": "{workspaceRoot}"
+            }
+        },
+        "test": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["default", "^production"],
+            "options": {
+                "command": "bun test",
+                "cwd": "apps/db-import"
+            }
+        }
+    }
+}

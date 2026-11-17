@@ -1,0 +1,45 @@
+{
+    "name": "data-normalization",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "projectType": "application",
+    "sourceRoot": "apps/data-normalization/src",
+    "tags": ["scope:data", "type:app"],
+    "targets": {
+        "normalize": {
+            "executor": "nx:run-commands",
+            "cache": false,
+            "options": {
+                "command": "bun run apps/data-normalization/src/index.ts",
+                "cwd": "{workspaceRoot}"
+            }
+        },
+        "build": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["production", "^production"],
+            "outputs": ["{workspaceRoot}/dist/apps/data-normalization"],
+            "options": {
+                "command": "bun build apps/data-normalization/src/index.ts --outdir dist/apps/data-normalization --target bun",
+                "cwd": "{workspaceRoot}"
+            }
+        },
+        "typecheck": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["default", "^production"],
+            "options": {
+                "command": "bunx tsc --noEmit -p apps/data-normalization/tsconfig.json",
+                "cwd": "{workspaceRoot}"
+            }
+        },
+        "test": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["default", "^production"],
+            "options": {
+                "command": "bun test",
+                "cwd": "apps/data-normalization"
+            }
+        }
+    }
+}

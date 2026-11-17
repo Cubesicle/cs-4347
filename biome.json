@@ -1,4 +1,9 @@
 {
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
     "assist": {
         "actions": {
             "source": {
@@ -16,6 +21,9 @@
         "lineEnding": "lf"
     },
     "javascript": {
+        "parser": {
+            "unsafeParameterDecoratorsEnabled": true
+        },
         "formatter": {
             "arrowParentheses": "always",
             "bracketSameLine": false,
@@ -31,5 +39,24 @@
         "formatter": {
             "trailingCommas": "none"
         }
-    }
+    },
+    "linter": {
+        "rules": {
+            "complexity": {
+                "useLiteralKeys": "off"
+            }
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["apps/api/**/*.ts"],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "useImportType": "off"
+                    }
+                }
+            }
+        }
+    ]
 }

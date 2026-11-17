@@ -1,0 +1,6 @@
+{
+    "name": "@cs-4347/db-schema",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module"
+}

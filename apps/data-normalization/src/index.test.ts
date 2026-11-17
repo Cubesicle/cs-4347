@@ -163,11 +163,11 @@ describe("mapBook", () => {
 
 describe("PATHS configuration", () => {
     it("has valid input and output file paths configured", () => {
-        expect(PATHS.input.borrowers).toBe("./data-original/borrowers.csv");
-        expect(PATHS.input.books).toBe("./data-original/books.csv");
-        expect(PATHS.output.borrowers).toBe("./data-normalized/borrowers.csv");
-        expect(PATHS.output.books).toBe("./data-normalized/books.csv");
-        expect(PATHS.output.authors).toBe("./data-normalized/authors.csv");
-        expect(PATHS.output.bookAuthors).toBe("./data-normalized/book_authors.csv");
+        expect(PATHS.input.borrowers).toBe("./data/original/borrowers.csv");
+        expect(PATHS.input.books).toBe("./data/original/books.csv");
+        expect(PATHS.output.borrowers).toBe("./data/normalized/borrowers.csv");
+        expect(PATHS.output.books).toBe("./data/normalized/books.csv");
+        expect(PATHS.output.authors).toBe("./data/normalized/authors.csv");
+        expect(PATHS.output.bookAuthors).toBe("./data/normalized/book_authors.csv");
     });
 });

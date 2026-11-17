@@ -1,10 +1,12 @@
-# dependencies (bun install)
-node_modules
-
-# output
+# compiled output
 out
 dist
+tmp
+out-tsc
 *.tgz
+
+# dependencies
+node_modules
 
 # code coverage
 coverage
@@ -12,8 +14,8 @@ coverage
 
 # logs
 logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # dotenv environment variable files
 .env
@@ -27,11 +29,50 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
-# IntelliJ based IDEs
+# IDEs and editors
 .idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
-# Finder (MacOS) folder config
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+/.sass-cache
+/connect.lock
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
 .DS_Store
+Thumbs.db
+
+# Nx
+.nx/cache
+.nx/workspace-data
+.nx/migrate-runs
+
+# Angular
+.angular
+
+# Screenshots
+__screenshots__/
 
 # Normalized data
-/data-normalized
+/data/normalized
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db

@@ -1,27 +1,48 @@
-# normalize-books-typescript
+# cs-4347
 
-To install dependencies:
+Nx monorepo built with **Bun**, **Angular**, **NestJS**, **Kysely**, and **SQLite**.
+
+## Getting Started
+
+Install dependencies:
 
 ```bash
 bun install
 ```
 
-To run:
+## Database Setup
+
+1. Normalize the raw CSV files into `./data/normalized/`:
 
 ```bash
-bun run index.ts
+bun run normalize
 ```
 
-To type check:
+2. Import the normalized CSV files into SQLite (defaults to `./data/library.sqlite`, override with `DB_PATH`):
 
 ```bash
-bun check
+bun run db:import
 ```
 
-To run unit tests:
+## Development Servers
+
+Start the NestJS API (`http://localhost:3000/api`, `http://localhost:3000/api/books`):
 
 ```bash
-bun test
+bun run serve:api
 ```
 
-`./data-original/` contains the original data that will be parsed by the program. After running, `./data-normalized/` will be created containing the normalized data.
+Start the Angular frontend (also starts `api:serve` and proxies `/api` to `http://localhost:3000`):
+
+```bash
+bun run serve:web
+```
+
+## Build, Test, Typecheck & Lint
+
+```bash
+bun run build
+bun run test
+bun run typecheck
+bun run lint
+```

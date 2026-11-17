@@ -3,8 +3,8 @@ import { parse, stringify, transform } from "csv";
 import { titleCase } from "title-case";
 
 // File paths configuration
-const INPUT_DIR = "./data-original";
-const OUTPUT_DIR = "./data-normalized";
+const INPUT_DIR = "./data/original";
+const OUTPUT_DIR = "./data/normalized";
 
 export const PATHS = {
     input: {

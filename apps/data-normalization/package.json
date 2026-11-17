@@ -1,0 +1,11 @@
+{
+    "name": "@cs-4347/data-normalization",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "normalize": "bun run src/index.ts",
+        "test": "bun test",
+        "typecheck": "tsc --noEmit"
+    }
+}
