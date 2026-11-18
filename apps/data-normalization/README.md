@@ -1,6 +1,14 @@
 # data-normalization
 
-Standalone Bun/TypeScript application that parses and normalizes raw CSV files from `./data/original/` into `./data/normalized/`.
+Python application (managed with `uv`) that parses and normalizes raw CSV files from `./data/original/` into `./data/normalized/`, using `nameparser` for author name parsing, salutation/credential stripping, and capitalization.
+
+## Prerequisites
+
+Install Python dependencies once with `uv`:
+
+```bash
+uv sync --project apps/data-normalization
+```
 
 ## Outputs
 

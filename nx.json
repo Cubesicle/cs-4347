@@ -2,10 +2,18 @@
     "$schema": "./node_modules/nx/schemas/nx-schema.json",
     "analytics": false,
     "namedInputs": {
-        "default": ["{projectRoot}/**/*", "sharedGlobals"],
+        "default": [
+            "{projectRoot}/**/*",
+            "!{projectRoot}/.venv/**/*",
+            "!{projectRoot}/**/__pycache__/**/*",
+            "!{projectRoot}/.mypy_cache/**/*",
+            "!{projectRoot}/.pytest_cache/**/*",
+            "sharedGlobals"
+        ],
         "production": [
             "default",
             "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+            "!{projectRoot}/**/*test*.py",
             "!{projectRoot}/tsconfig.spec.json",
             "!{projectRoot}/jest.config.{cjs,mjs,js,cts,mts,ts}",
             "!{projectRoot}/src/test-setup.[jt]s",

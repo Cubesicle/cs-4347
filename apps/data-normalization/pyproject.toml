@@ -1,0 +1,22 @@
+[project]
+name = "data-normalization"
+version = "0.1.0"
+description = "Normalizes raw library CSV files into clean relational CSVs using nameparser"
+requires-python = ">=3.11"
+dependencies = [
+    "nameparser>=3.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.14.0",
+    "pytest>=8.0.0",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["src"]

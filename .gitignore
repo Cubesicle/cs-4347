@@ -76,3 +76,10 @@ __screenshots__/
 *.sqlite
 *.sqlite3
 *.db
+
+# Python
+.venv
+__pycache__
+*.pyc
+.mypy_cache
+.pytest_cache

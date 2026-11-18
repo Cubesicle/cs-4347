@@ -9,7 +9,7 @@
             "executor": "nx:run-commands",
             "cache": false,
             "options": {
-                "command": "bun run apps/data-normalization/src/index.ts",
+                "command": "uv run --project apps/data-normalization python apps/data-normalization/src/main.py",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -17,9 +17,8 @@
             "executor": "nx:run-commands",
             "cache": true,
             "inputs": ["production", "^production"],
-            "outputs": ["{workspaceRoot}/dist/apps/data-normalization"],
             "options": {
-                "command": "bun build apps/data-normalization/src/index.ts --outdir dist/apps/data-normalization --target bun",
+                "command": "uv run --project apps/data-normalization python -m compileall -q apps/data-normalization/src",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -28,7 +27,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p apps/data-normalization/tsconfig.json",
+                "command": "uv run --project apps/data-normalization mypy apps/data-normalization/src",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -37,7 +36,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bun test",
+                "command": "uv run pytest",
                 "cwd": "apps/data-normalization"
             }
         }
