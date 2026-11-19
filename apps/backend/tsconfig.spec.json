@@ -2,13 +2,13 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
         "outDir": "../../dist/out-tsc",
-        "module": "commonjs",
+        "module": "esnext",
         "moduleResolution": "bundler",
-        "types": ["jest", "node"]
+        "types": ["@rstest/core/globals", "node"]
     },
     "include": [
-        "jest.config.ts",
-        "webpack.config.ts",
+        "rstest.config.ts",
+        "rspack.config.ts",
         "src/**/*.test.ts",
         "src/**/*.spec.ts",
         "src/**/*.d.ts"

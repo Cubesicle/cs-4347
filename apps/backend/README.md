@@ -1,6 +1,6 @@
 # backend
 
-NestJS backend API built with `@nx/webpack`, Jest unit tests, and Kysely SQL queries against SQLite (`@cs-4347/db-operations` and `@cs-4347/db-schema`).
+NestJS backend API built with `@nx/rspack`, Rstest unit tests, and Kysely SQL queries against SQLite (`@cs-4347/db-operations` and `@cs-4347/db-schema`).
 
 ## Features
 

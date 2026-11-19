@@ -1,8 +1,8 @@
-import type { Configuration } from "webpack";
+import type { Configuration } from "@rspack/core";
 
 const { join } = require("node:path") as typeof import("node:path");
-const { NxAppWebpackPlugin } =
-    require("@nx/webpack/app-plugin") as typeof import("@nx/webpack/app-plugin");
+const { NxAppRspackPlugin } =
+    require("@nx/rspack/app-plugin") as typeof import("@nx/rspack/app-plugin");
 
 const config: Configuration = {
     output: {
@@ -13,9 +13,8 @@ const config: Configuration = {
         }),
     },
     plugins: [
-        new NxAppWebpackPlugin({
+        new NxAppRspackPlugin({
             target: "node",
-            compiler: "tsc",
             main: "./src/main.ts",
             tsConfig: "./tsconfig.app.json",
             optimization: false,

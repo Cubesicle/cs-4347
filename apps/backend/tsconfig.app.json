@@ -10,5 +10,5 @@
         "moduleResolution": "bundler"
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["jest.config.ts", "webpack.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
+    "exclude": ["rstest.config.ts", "rspack.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
 }

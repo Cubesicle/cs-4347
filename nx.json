@@ -15,7 +15,7 @@
             "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
             "!{projectRoot}/**/*test*.py",
             "!{projectRoot}/tsconfig.spec.json",
-            "!{projectRoot}/jest.config.{cjs,mjs,js,cts,mts,ts}",
+            "!{projectRoot}/rstest.config.{cjs,mjs,js,cts,mts,ts}",
             "!{projectRoot}/src/test-setup.[jt]s",
             "!{projectRoot}/test-setup.[jt]s"
         ],
@@ -41,7 +41,7 @@
     },
     "plugins": [
         {
-            "plugin": "@nx/webpack/plugin",
+            "plugin": "@nx/rspack/plugin",
             "options": {
                 "buildTargetName": "build",
                 "serveTargetName": "serve",
@@ -49,12 +49,6 @@
                 "buildDepsTargetName": "build-deps",
                 "watchDepsTargetName": "watch-deps",
                 "serveStaticTargetName": "serve-static"
-            }
-        },
-        {
-            "plugin": "@nx/jest/plugin",
-            "options": {
-                "targetName": "test"
             }
         }
     ]

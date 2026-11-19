@@ -27,8 +27,12 @@
             }
         },
         "test": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["default", "^production"],
             "options": {
-                "passWithNoTests": true
+                "command": "bunx rstest run --passWithNoTests",
+                "cwd": "apps/backend"
             }
         },
         "typecheck": {
