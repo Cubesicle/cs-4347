@@ -1,9 +1,6 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "outDir": "../../dist/out-tsc",
-        "module": "esnext",
-        "moduleResolution": "bundler",
         "types": ["@rstest/core/globals", "node"]
     },
     "include": [

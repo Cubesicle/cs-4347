@@ -1,16 +1,7 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "lib": ["ESNext"],
-        "target": "ESNext",
-        "module": "Preserve",
-        "moduleDetection": "force",
-        "allowJs": true,
-        "types": ["bun", "node"],
-        "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
-        "verbatimModuleSyntax": true,
-        "noEmit": true
+        "types": ["bun", "node"]
     },
     "include": ["src/**/*.ts"]
 }
