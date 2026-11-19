@@ -26,7 +26,7 @@ bun run db:import
 
 ## Development Servers
 
-Start the NestJS API (`http://localhost:3000/api`, `http://localhost:3000/api/books`):
+Start the NestJS API (`http://localhost:3000/api/books`):
 
 ```bash
 bun run serve:backend

@@ -1,22 +1,20 @@
 import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
 import type { Database } from "@cs-4347/db-schema";
-import { Global, Inject, Module, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
-import type { Kysely } from "kysely";
-
-export const DATABASE_TOKEN = Symbol("KYSELY_DATABASE");
+import { Global, Module, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import { Kysely } from "kysely";
 
 @Global()
 @Module({
     providers: [
         {
-            provide: DATABASE_TOKEN,
+            provide: Kysely,
             useFactory: () => createDatabase(),
         },
     ],
-    exports: [DATABASE_TOKEN],
+    exports: [Kysely],
 })
 export class DatabaseModule implements OnModuleInit, OnModuleDestroy {
-    constructor(@Inject(DATABASE_TOKEN) private readonly db: Kysely<Database>) {}
+    constructor(private readonly db: Kysely<Database>) {}
 
     async onModuleInit(): Promise<void> {
         await ensureDatabaseSchema(this.db);

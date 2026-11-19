@@ -1,11 +1,10 @@
 import type { Book, Database } from "@cs-4347/db-schema";
-import { Inject, Injectable } from "@nestjs/common";
-import type { Kysely } from "kysely";
-import { DATABASE_TOKEN } from "../database/database.module";
+import { Injectable } from "@nestjs/common";
+import { Kysely } from "kysely";
 
 @Injectable()
 export class BooksService {
-    constructor(@Inject(DATABASE_TOKEN) private readonly db: Kysely<Database>) {}
+    constructor(private readonly db: Kysely<Database>) {}
 
     async findAll(): Promise<Book[]> {
         return this.db

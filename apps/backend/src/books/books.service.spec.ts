@@ -1,8 +1,7 @@
 import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
 import type { Database } from "@cs-4347/db-schema";
 import { Test } from "@nestjs/testing";
-import type { Kysely } from "kysely";
-import { DATABASE_TOKEN } from "../database/database.module";
+import { Kysely } from "kysely";
 import { BooksService } from "./books.service";
 
 describe("BooksService", () => {
@@ -17,7 +16,7 @@ describe("BooksService", () => {
             providers: [
                 BooksService,
                 {
-                    provide: DATABASE_TOKEN,
+                    provide: Kysely,
                     useValue: db,
                 },
             ],

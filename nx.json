@@ -55,8 +55,7 @@
             "plugin": "@nx/jest/plugin",
             "options": {
                 "targetName": "test"
-            },
-            "exclude": ["apps/backend-testing/**/*"]
+            }
         }
     ]
 }
