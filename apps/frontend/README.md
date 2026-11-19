@@ -1,4 +1,4 @@
-# web
+# frontend
 
 Angular frontend application built with `@angular/build:application`, standalone components, zoneless change detection, and Vitest unit tests (`@angular/build:unit-test`).
 
@@ -10,8 +10,8 @@ Angular frontend application built with `@angular/build:application`, standalone
 ## Commands
 
 ```bash
-bunx nx serve web
-bunx nx build web
-bunx nx test web
-bunx nx run web:typecheck
+bunx nx serve frontend
+bunx nx build frontend
+bunx nx test frontend
+bunx nx run frontend:typecheck
 ```

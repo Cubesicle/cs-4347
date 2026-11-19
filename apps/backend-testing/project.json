@@ -1,23 +1,23 @@
 {
-    "name": "api-e2e",
+    "name": "backend-testing",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
-    "implicitDependencies": ["api"],
+    "implicitDependencies": ["backend"],
     "projectType": "application",
     "targets": {
         "e2e": {
             "command": "jest --passWithNoTests",
             "options": {
-                "cwd": "apps/api-e2e"
+                "cwd": "apps/backend-testing"
             },
             "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
-            "dependsOn": ["api:build", "api:serve"]
+            "dependsOn": ["backend:build", "backend:serve"]
         },
         "typecheck": {
             "executor": "nx:run-commands",
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p apps/api-e2e/tsconfig.spec.json",
+                "command": "bunx tsc --noEmit -p apps/backend-testing/tsconfig.spec.json",
                 "cwd": "{workspaceRoot}"
             }
         }

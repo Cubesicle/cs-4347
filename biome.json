@@ -49,7 +49,7 @@
     },
     "overrides": [
         {
-            "includes": ["apps/api/**/*.ts"],
+            "includes": ["apps/backend/**/*.ts"],
             "linter": {
                 "rules": {
                     "style": {

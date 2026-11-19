@@ -1,4 +1,4 @@
-import { createDatabase, ensureDatabaseSchema } from "@cs-4347/database";
+import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
 import type { Author, Book, BookAuthor, Borrower, Database } from "@cs-4347/db-schema";
 import { parse } from "csv/sync";
 import type { Kysely } from "kysely";

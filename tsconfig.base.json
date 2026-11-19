@@ -21,7 +21,7 @@
         "noPropertyAccessFromIndexSignature": true,
         "forceConsistentCasingInFileNames": true,
         "paths": {
-            "@cs-4347/database": ["./packages/database/src/index.ts"],
+            "@cs-4347/db-operations": ["./packages/db-operations/src/index.ts"],
             "@cs-4347/db-schema": ["./packages/db-schema/src/index.ts"]
         }
     },

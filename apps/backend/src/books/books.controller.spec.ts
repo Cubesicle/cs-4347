@@ -1,4 +1,4 @@
-import { createDatabase, ensureDatabaseSchema } from "@cs-4347/database";
+import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
 import type { Database } from "@cs-4347/db-schema";
 import { NotFoundException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";

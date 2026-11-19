@@ -4,7 +4,7 @@ const jestPreset = require("../../jest.preset.ts") as Config;
 
 const config: Config = {
     ...jestPreset,
-    displayName: "api-e2e",
+    displayName: "backend-testing",
     globalSetup: "<rootDir>/src/support/global-setup.ts",
     globalTeardown: "<rootDir>/src/support/global-teardown.ts",
     setupFiles: ["<rootDir>/src/support/test-setup.ts"],
@@ -18,7 +18,7 @@ const config: Config = {
         ],
     },
     moduleFileExtensions: ["ts", "js", "html"],
-    coverageDirectory: "../../coverage/api-e2e",
+    coverageDirectory: "../../coverage/backend-testing",
 };
 
 module.exports = config;

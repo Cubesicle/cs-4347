@@ -1,4 +1,4 @@
-import { createDatabase, ensureDatabaseSchema } from "@cs-4347/database";
+import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
 import type { Database } from "@cs-4347/db-schema";
 import { Global, Inject, Module, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import type { Kysely } from "kysely";

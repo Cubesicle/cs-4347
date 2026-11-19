@@ -1,6 +1,6 @@
-# @cs-4347/database
+# @cs-4347/db-operations
 
-Shared Kysely SQLite database connection and schema DDL package used by `apps/api` and `apps/db-import`.
+Shared Kysely SQLite database connection and schema DDL package used by `apps/backend` and `apps/db-import`.
 
 ## Features
 
@@ -10,6 +10,6 @@ Shared Kysely SQLite database connection and schema DDL package used by `apps/ap
 ## Commands
 
 ```bash
-bunx nx test database
-bunx nx run database:typecheck
+bunx nx test db-operations
+bunx nx run db-operations:typecheck
 ```

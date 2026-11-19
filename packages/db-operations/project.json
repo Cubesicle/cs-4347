@@ -1,8 +1,8 @@
 {
-    "name": "database",
+    "name": "db-operations",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
     "projectType": "library",
-    "sourceRoot": "packages/database/src",
+    "sourceRoot": "packages/db-operations/src",
     "tags": ["scope:shared", "type:data-access"],
     "targets": {
         "typecheck": {
@@ -10,7 +10,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p packages/database/tsconfig.json",
+                "command": "bunx tsc --noEmit -p packages/db-operations/tsconfig.json",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -20,7 +20,7 @@
             "inputs": ["default", "^production"],
             "options": {
                 "command": "bun test",
-                "cwd": "packages/database"
+                "cwd": "packages/db-operations"
             }
         }
     }

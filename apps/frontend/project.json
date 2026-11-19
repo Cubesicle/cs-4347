@@ -1,9 +1,9 @@
 {
-    "name": "web",
+    "name": "frontend",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
     "projectType": "application",
     "prefix": "app",
-    "sourceRoot": "apps/web/src",
+    "sourceRoot": "apps/frontend/src",
     "tags": [],
     "targets": {
         "build": {
@@ -11,17 +11,17 @@
             "outputs": ["{options.outputPath}"],
             "defaultConfiguration": "production",
             "options": {
-                "outputPath": "dist/apps/web",
-                "browser": "apps/web/src/main.ts",
-                "tsConfig": "apps/web/tsconfig.app.json",
+                "outputPath": "dist/apps/frontend",
+                "browser": "apps/frontend/src/main.ts",
+                "tsConfig": "apps/frontend/tsconfig.app.json",
                 "inlineStyleLanguage": "scss",
                 "assets": [
                     {
                         "glob": "**/*",
-                        "input": "apps/web/public"
+                        "input": "apps/frontend/public"
                     }
                 ],
-                "styles": ["apps/web/src/styles.scss"]
+                "styles": ["apps/frontend/src/styles.scss"]
             },
             "configurations": {
                 "production": {
@@ -55,15 +55,15 @@
             "defaultConfiguration": "development",
             "configurations": {
                 "production": {
-                    "buildTarget": "web:build:production"
+                    "buildTarget": "frontend:build:production"
                 },
                 "development": {
-                    "buildTarget": "web:build:development"
+                    "buildTarget": "frontend:build:development"
                 }
             },
-            "dependsOn": ["api:serve"],
+            "dependsOn": ["backend:serve"],
             "options": {
-                "proxyConfig": "apps/web/proxy.conf.json"
+                "proxyConfig": "apps/frontend/proxy.conf.json"
             }
         },
         "test": {
@@ -77,7 +77,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p apps/web/tsconfig.app.json && bunx tsc --noEmit -p apps/web/tsconfig.spec.json",
+                "command": "bunx tsc --noEmit -p apps/frontend/tsconfig.app.json && bunx tsc --noEmit -p apps/frontend/tsconfig.spec.json",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -89,8 +89,8 @@
             "dependsOn": ["build"],
             "executor": "@nx/web:file-server",
             "options": {
-                "buildTarget": "web:build",
-                "staticFilePath": "dist/apps/web/browser",
+                "buildTarget": "frontend:build",
+                "staticFilePath": "dist/apps/frontend/browser",
                 "spa": true
             }
         }

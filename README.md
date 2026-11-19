@@ -29,13 +29,13 @@ bun run db:import
 Start the NestJS API (`http://localhost:3000/api`, `http://localhost:3000/api/books`):
 
 ```bash
-bun run serve:api
+bun run serve:backend
 ```
 
-Start the Angular frontend (also starts `api:serve` and proxies `/api` to `http://localhost:3000`):
+Start the Angular frontend (also starts `backend:serve` and proxies `/api` to `http://localhost:3000`):
 
 ```bash
-bun run serve:web
+bun run serve:frontend
 ```
 
 ## Build, Test, Typecheck & Lint

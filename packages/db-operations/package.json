@@ -1,5 +1,5 @@
 {
-    "name": "@cs-4347/database",
+    "name": "@cs-4347/db-operations",
     "version": "0.0.1",
     "private": true,
     "type": "module",

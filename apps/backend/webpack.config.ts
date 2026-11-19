@@ -6,7 +6,7 @@ const { NxAppWebpackPlugin } =
 
 const config: Configuration = {
     output: {
-        path: join(__dirname, "../../dist/apps/api"),
+        path: join(__dirname, "../../dist/apps/backend"),
         clean: true,
         ...(process.env["NODE_ENV"] !== "production" && {
             devtoolModuleFilenameTemplate: "[absolute-resource-path]",

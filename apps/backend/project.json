@@ -1,7 +1,7 @@
 {
-    "name": "api",
+    "name": "backend",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
-    "sourceRoot": "apps/api/src",
+    "sourceRoot": "apps/backend/src",
     "projectType": "application",
     "tags": [],
     "targets": {
@@ -10,8 +10,8 @@
             "cache": true,
             "executor": "@nx/js:prune-lockfile",
             "outputs": [
-                "{workspaceRoot}/dist/apps/api/package.json",
-                "{workspaceRoot}/dist/apps/api/bun.lock"
+                "{workspaceRoot}/dist/apps/backend/package.json",
+                "{workspaceRoot}/dist/apps/backend/bun.lock"
             ],
             "options": {
                 "buildTarget": "build"
@@ -20,7 +20,7 @@
         "copy-workspace-modules": {
             "dependsOn": ["build"],
             "cache": true,
-            "outputs": ["{workspaceRoot}/dist/apps/api/workspace_modules"],
+            "outputs": ["{workspaceRoot}/dist/apps/backend/workspace_modules"],
             "executor": "@nx/js:copy-workspace-modules",
             "options": {
                 "buildTarget": "build"
@@ -39,15 +39,15 @@
                 "signal": true
             },
             "options": {
-                "buildTarget": "api:build",
+                "buildTarget": "backend:build",
                 "runBuildTargetDependencies": false
             },
             "configurations": {
                 "development": {
-                    "buildTarget": "api:build:development"
+                    "buildTarget": "backend:build:development"
                 },
                 "production": {
-                    "buildTarget": "api:build:production"
+                    "buildTarget": "backend:build:production"
                 }
             }
         },
@@ -61,7 +61,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p apps/api/tsconfig.app.json && bunx tsc --noEmit -p apps/api/tsconfig.spec.json",
+                "command": "bunx tsc --noEmit -p apps/backend/tsconfig.app.json && bunx tsc --noEmit -p apps/backend/tsconfig.spec.json",
                 "cwd": "{workspaceRoot}"
             }
         }

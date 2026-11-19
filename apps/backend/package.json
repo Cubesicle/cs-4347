@@ -1,5 +1,5 @@
 {
-    "name": "@cs-4347/api",
+    "name": "@cs-4347/backend",
     "version": "0.0.1",
     "private": true,
     "dependencies": {

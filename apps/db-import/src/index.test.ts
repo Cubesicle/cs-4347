@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDatabase } from "@cs-4347/database";
+import { createDatabase } from "@cs-4347/db-operations";
 import type { Database } from "@cs-4347/db-schema";
 import type { Kysely } from "kysely";
 import { importAll, type PATHS } from "./index";
