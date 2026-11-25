@@ -1,13 +1,13 @@
 # cs-4347
 
-Nx monorepo built with **Bun**, **Angular**, **NestJS**, **Kysely**, and **SQLite**.
+Nx monorepo built with **Node.js** (compatible with **npm** and **Bun**), **Angular**, **NestJS**, **Kysely**, and **SQLite**.
 
 ## Getting Started
 
-Install dependencies:
+Requires **Node.js 22+** (for built-in `node:sqlite`) or **Bun**. Install dependencies with either `npm` or `bun`:
 
 ```bash
-bun install
+npm install # or: bun install
 ```
 
 ## Database Setup
@@ -15,13 +15,13 @@ bun install
 1. Normalize the raw CSV files into `./data/normalized/`:
 
 ```bash
-bun run normalize
+npm run normalize # or: bun run normalize
 ```
 
 2. Import the normalized CSV files into SQLite (defaults to `./data/library.sqlite`, override with `DB_PATH`):
 
 ```bash
-bun run db:import
+npm run db:import # or: bun run db:import
 ```
 
 ## Development Servers
@@ -29,20 +29,20 @@ bun run db:import
 Start the NestJS API (`http://localhost:3000/api/books`):
 
 ```bash
-bun run serve:backend
+npm run serve:backend # or: bun run serve:backend
 ```
 
 Start the Angular frontend (also starts `backend:serve` and proxies `/api` to `http://localhost:3000`):
 
 ```bash
-bun run serve:frontend
+npm run serve:frontend # or: bun run serve:frontend
 ```
 
 ## Build, Test, Typecheck & Lint
 
 ```bash
-bun run build
-bun run test
-bun run typecheck
-bun run lint
+npm run build
+npm run test
+npm run typecheck
+npm run lint
 ```

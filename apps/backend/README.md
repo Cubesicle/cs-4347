@@ -12,8 +12,8 @@ NestJS backend API built with `@nx/rspack`, Rstest unit tests, and Kysely SQL qu
 ## Commands
 
 ```bash
-bunx nx serve backend
-bunx nx build backend
-bunx nx test backend
-bunx nx run backend:typecheck
+npx nx serve backend
+npx nx build backend
+npx nx test backend
+npx nx run backend:typecheck
 ```

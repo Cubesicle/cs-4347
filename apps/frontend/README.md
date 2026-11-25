@@ -10,8 +10,8 @@ Angular frontend application built with `@angular/build:application`, standalone
 ## Commands
 
 ```bash
-bunx nx serve frontend
-bunx nx build frontend
-bunx nx test frontend
-bunx nx run frontend:typecheck
+npx nx serve frontend
+npx nx build frontend
+npx nx test frontend
+npx nx run frontend:typecheck
 ```

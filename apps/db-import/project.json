@@ -7,19 +7,10 @@
     "targets": {
         "import": {
             "executor": "nx:run-commands",
+            "dependsOn": ["build"],
             "cache": false,
             "options": {
-                "command": "bun run apps/db-import/src/index.ts",
-                "cwd": "{workspaceRoot}"
-            }
-        },
-        "build": {
-            "executor": "nx:run-commands",
-            "cache": true,
-            "inputs": ["production", "^production"],
-            "outputs": ["{workspaceRoot}/dist/apps/db-import"],
-            "options": {
-                "command": "bun build apps/db-import/src/index.ts --outdir dist/apps/db-import --target bun",
+                "command": "node dist/apps/db-import/main.js",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -28,7 +19,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p apps/db-import/tsconfig.json",
+                "command": "tsc --noEmit -p apps/db-import/tsconfig.json",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -37,7 +28,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bun test",
+                "command": "rstest run",
                 "cwd": "apps/db-import"
             }
         }

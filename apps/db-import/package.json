@@ -2,10 +2,5 @@
     "name": "@cs-4347/db-import",
     "version": "0.0.1",
     "private": true,
-    "type": "module",
-    "scripts": {
-        "import": "bun run src/index.ts",
-        "test": "bun test",
-        "typecheck": "tsc --noEmit"
-    }
+    "type": "module"
 }

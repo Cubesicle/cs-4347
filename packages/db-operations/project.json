@@ -10,7 +10,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p packages/db-operations/tsconfig.json",
+                "command": "tsc --noEmit -p packages/db-operations/tsconfig.json",
                 "cwd": "{workspaceRoot}"
             }
         },
@@ -19,7 +19,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bun test",
+                "command": "rstest run",
                 "cwd": "packages/db-operations"
             }
         }

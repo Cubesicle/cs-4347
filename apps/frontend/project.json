@@ -77,7 +77,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p apps/frontend/tsconfig.app.json && bunx tsc --noEmit -p apps/frontend/tsconfig.spec.json",
+                "command": "tsc --noEmit -p apps/frontend/tsconfig.app.json && tsc --noEmit -p apps/frontend/tsconfig.spec.json",
                 "cwd": "{workspaceRoot}"
             }
         },

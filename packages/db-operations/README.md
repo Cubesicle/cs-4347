@@ -10,6 +10,6 @@ Shared Kysely SQLite database connection and schema DDL package used by `apps/ba
 ## Commands
 
 ```bash
-bunx nx test db-operations
-bunx nx run db-operations:typecheck
+npx nx test db-operations
+npx nx run db-operations:typecheck
 ```

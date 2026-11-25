@@ -10,5 +10,5 @@ Shared TypeScript database schema package defining Kysely table interfaces and r
 ## Commands
 
 ```bash
-bunx nx run db-schema:typecheck
+npx nx run db-schema:typecheck
 ```

@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
 import type { Database } from "@cs-4347/db-schema";
+import { afterEach, describe, expect, it } from "@rstest/core";
 import type { Kysely } from "kysely";
 import {
     createDatabase,

@@ -31,7 +31,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx rstest run --passWithNoTests",
+                "command": "rstest run --passWithNoTests",
                 "cwd": "apps/backend"
             }
         },
@@ -40,7 +40,7 @@
             "cache": true,
             "inputs": ["default", "^production"],
             "options": {
-                "command": "bunx tsc --noEmit -p apps/backend/tsconfig.app.json && bunx tsc --noEmit -p apps/backend/tsconfig.spec.json",
+                "command": "tsc --noEmit -p apps/backend/tsconfig.app.json && tsc --noEmit -p apps/backend/tsconfig.spec.json",
                 "cwd": "{workspaceRoot}"
             }
         }

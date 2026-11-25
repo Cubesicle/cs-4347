@@ -5,8 +5,8 @@
             "type": "node",
             "request": "launch",
             "name": "Debug backend with Nx",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["nx", "serve", "backend"],
+            "program": "${workspaceFolder}/node_modules/.bin/nx",
+            "args": ["serve", "backend"],
             "env": {
                 "NODE_OPTIONS": "--inspect=9229"
             },
@@ -15,7 +15,7 @@
             "skipFiles": ["<node_internals>/**"],
             "sourceMaps": true,
             "outFiles": [
-                "${workspaceFolder}/apps/backend/dist/**/*.(m|c|)js",
+                "${workspaceFolder}/dist/apps/backend/**/*.(m|c|)js",
                 "!**/node_modules/**"
             ]
         }

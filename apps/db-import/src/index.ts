@@ -1,9 +1,11 @@
+import { readFile } from "node:fs/promises";
 import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
 import type { Author, Book, BookAuthor, Borrower, Database } from "@cs-4347/db-schema";
 import { parse } from "csv/sync";
 import type { Kysely } from "kysely";
 
 const INPUT_DIR = "./data/normalized";
+const INSERT_CHUNK_SIZE = 500;
 
 export const PATHS = {
     borrowers: `${INPUT_DIR}/borrowers.csv`,
@@ -14,15 +16,28 @@ export const PATHS = {
 
 type CsvRow<T> = { [K in keyof T]: string };
 
+function chunkRows<T>(rows: readonly T[], size = INSERT_CHUNK_SIZE): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < rows.length; i += size) {
+        chunks.push(rows.slice(i, i + size));
+    }
+    return chunks;
+}
+
 export async function readCsv<T>(filePath: string): Promise<CsvRow<T>[]> {
-    const file = Bun.file(filePath);
-    if (!(await file.exists())) {
-        throw new Error(
-            `Normalized CSV file not found at "${filePath}". Run "bun run normalize" first.`,
-        );
+    let text: string;
+    try {
+        text = await readFile(filePath, "utf8");
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            throw new Error(
+                `Normalized CSV file not found at "${filePath}". Run "npm run normalize" (or "bun run normalize") first.`,
+            );
+        }
+        throw error;
     }
 
-    return parse(await file.text(), {
+    return parse(text, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
@@ -49,11 +64,18 @@ export async function importAll(db: Kysely<Database>, paths = PATHS) {
         await trx.deleteFrom("books").execute();
         await trx.deleteFrom("borrowers").execute();
 
-        if (borrowers.length > 0) await trx.insertInto("borrowers").values(borrowers).execute();
-        if (books.length > 0) await trx.insertInto("books").values(books).execute();
-        if (authors.length > 0) await trx.insertInto("authors").values(authors).execute();
-        if (bookAuthors.length > 0)
-            await trx.insertInto("book_authors").values(bookAuthors).execute();
+        for (const chunk of chunkRows(borrowers)) {
+            await trx.insertInto("borrowers").values(chunk).execute();
+        }
+        for (const chunk of chunkRows(books)) {
+            await trx.insertInto("books").values(chunk).execute();
+        }
+        for (const chunk of chunkRows(authors)) {
+            await trx.insertInto("authors").values(chunk).execute();
+        }
+        for (const chunk of chunkRows(bookAuthors)) {
+            await trx.insertInto("book_authors").values(chunk).execute();
+        }
     });
 
     return {
@@ -74,8 +96,4 @@ export async function main(): Promise<void> {
     } finally {
         await db.destroy();
     }
-}
-
-if (import.meta.main) {
-    await main();
 }

@@ -20,8 +20,8 @@ uv sync --project apps/data-normalization
 ## Commands
 
 ```bash
-bunx nx run data-normalization:normalize
-bunx nx test data-normalization
-bunx nx run data-normalization:typecheck
-bunx nx build data-normalization
+npx nx run data-normalization:normalize
+npx nx test data-normalization
+npx nx run data-normalization:typecheck
+npx nx build data-normalization
 ```

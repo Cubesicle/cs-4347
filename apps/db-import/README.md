@@ -1,6 +1,6 @@
 # db-import
 
-Standalone Bun/TypeScript application that imports normalized CSV files from `./data/normalized/` into SQLite using Kysely (`@cs-4347/db-operations` and `@cs-4347/db-schema`).
+Node.js/TypeScript CLI application (bundled with `@nx/rspack`, tested with Rstest) that imports normalized CSV files from `./data/normalized/` into SQLite using Kysely (`@cs-4347/db-operations` and `@cs-4347/db-schema`).
 
 ## Configuration
 
@@ -9,8 +9,8 @@ Standalone Bun/TypeScript application that imports normalized CSV files from `./
 ## Commands
 
 ```bash
-bunx nx run db-import:import
-bunx nx test db-import
-bunx nx run db-import:typecheck
-bunx nx build db-import
+npx nx run db-import:import
+npx nx test db-import
+npx nx run db-import:typecheck
+npx nx build db-import
 ```
