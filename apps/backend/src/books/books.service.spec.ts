@@ -50,4 +50,11 @@ describe("BooksService", () => {
         });
         expect(await service.findByIsbn("0000000000000")).toBeUndefined();
     });
+
+    describe("search", () => {
+        it.todo("matches case-insensitive substrings across ISBN, title, and author names");
+        it.todo("returns all authors as a comma-separated string in a single row per book");
+        it.todo("returns at most one result when searching by full ISBN");
+        it.todo("reports status IN when available or returned, and OUT when actively checked out");
+    });
 });

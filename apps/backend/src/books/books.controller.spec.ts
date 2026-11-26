@@ -51,4 +51,8 @@ describe("BooksController", () => {
     it("throws NotFoundException when ISBN does not exist", async () => {
         await expect(controller.findOne("missing-isbn")).rejects.toThrow(NotFoundException);
     });
+
+    describe("search query", () => {
+        it.todo("delegates GET /api/books?q=... to BooksService.search()");
+    });
 });
