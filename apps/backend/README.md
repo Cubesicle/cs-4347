@@ -8,6 +8,10 @@ NestJS backend API built with `@nx/rspack`, Rstest unit tests, and `@nestjs/driz
 - `BooksModule` exposes:
   - `GET /api/books` — returns all rows from the `books` table ordered by `title`, then `isbn`.
   - `GET /api/books/:isbn` — returns a single book by ISBN or `404 Not Found`.
+- `BorrowersModule` exposes:
+  - `POST /api/borrowers` — creates a borrower from `{ bname, ssn, address, phone? }` with the next `card_id` (e.g. `ID001001`). Returns `400` for blank required fields and `409 Conflict` for a duplicate SSN.
+  - `GET /api/borrowers?q=...` — lists borrowers ordered by `card_id`, optionally filtered by a case-insensitive substring of `card_id` or name.
+  - `GET /api/borrowers/:cardId` — returns a single borrower or `404 Not Found`.
 
 ## Commands
 
