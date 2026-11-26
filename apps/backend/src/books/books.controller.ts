@@ -1,4 +1,4 @@
-import type { Book } from "@cs-4347/db-schema";
+import type { Book } from "@cs-4347/db";
 import { Controller, Get, NotFoundException, Param } from "@nestjs/common";
 import { BooksService } from "./books.service";
 

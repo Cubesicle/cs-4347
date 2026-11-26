@@ -1,32 +1,26 @@
-import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
-import type { Database } from "@cs-4347/db-schema";
-import { Test } from "@nestjs/testing";
-import { Kysely } from "kysely";
+import { type AppDatabase, books, createDatabase } from "@cs-4347/db";
+import { DrizzleModule } from "@nestjs/drizzle";
+import { Test, type TestingModule } from "@nestjs/testing";
 import { BooksService } from "./books.service";
 
 describe("BooksService", () => {
-    let db: Kysely<Database>;
+    let db: AppDatabase;
+    let moduleRef: TestingModule;
     let service: BooksService;
 
     beforeEach(async () => {
         db = createDatabase(":memory:");
-        await ensureDatabaseSchema(db);
 
-        const moduleRef = await Test.createTestingModule({
-            providers: [
-                BooksService,
-                {
-                    provide: Kysely,
-                    useValue: db,
-                },
-            ],
+        moduleRef = await Test.createTestingModule({
+            imports: [DrizzleModule.forRoot({ db })],
+            providers: [BooksService],
         }).compile();
 
         service = moduleRef.get(BooksService);
     });
 
     afterEach(async () => {
-        await db.destroy();
+        await moduleRef.close();
     });
 
     it("returns an empty list when the books table has no rows", async () => {
@@ -34,14 +28,11 @@ describe("BooksService", () => {
     });
 
     it("returns all books ordered by title and isbn", async () => {
-        await db
-            .insertInto("books")
-            .values([
-                { isbn: "9780195153446", title: "Classical Mythology" },
-                { isbn: "9780002005012", title: "Clara Callan: A Novel" },
-                { isbn: "9780195153445", title: "Classical Mythology" },
-            ])
-            .execute();
+        await db.insert(books).values([
+            { isbn: "9780195153446", title: "Classical Mythology" },
+            { isbn: "9780002005012", title: "Clara Callan: A Novel" },
+            { isbn: "9780195153445", title: "Classical Mythology" },
+        ]);
 
         expect(await service.findAll()).toEqual([
             { isbn: "9780002005012", title: "Clara Callan: A Novel" },
@@ -51,10 +42,7 @@ describe("BooksService", () => {
     });
 
     it("finds a book by ISBN and returns undefined when absent", async () => {
-        await db
-            .insertInto("books")
-            .values({ isbn: "9780060973124", title: "Decision In Normandy" })
-            .execute();
+        await db.insert(books).values({ isbn: "9780060973124", title: "Decision In Normandy" });
 
         expect(await service.findByIsbn("9780060973124")).toEqual({
             isbn: "9780060973124",

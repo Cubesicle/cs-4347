@@ -1,13 +1,13 @@
 import { Component, inject, type OnInit, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
-import type { Book } from "@cs-4347/db-schema";
+import type { Book } from "@cs-4347/db/schema";
 import { BooksService } from "./books/books.service";
 
 @Component({
     imports: [RouterModule],
     selector: "app-root",
     templateUrl: "./app.html",
-    styleUrl: "./app.scss",
+    styleUrl: "./app.css",
 })
 export class App implements OnInit {
     private readonly booksService = inject(BooksService);

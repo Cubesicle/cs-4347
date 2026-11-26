@@ -23,8 +23,8 @@
         "forceConsistentCasingInFileNames": true,
         "types": [],
         "paths": {
-            "@cs-4347/db-operations": ["./packages/db-operations/src/index.ts"],
-            "@cs-4347/db-schema": ["./packages/db-schema/src/index.ts"]
+            "@cs-4347/db": ["./packages/db/src/index.ts"],
+            "@cs-4347/db/schema": ["./packages/db/src/schema.ts"]
         }
     },
     "exclude": ["node_modules", "tmp"]

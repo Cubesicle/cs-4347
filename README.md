@@ -1,6 +1,6 @@
 # cs-4347
 
-Nx monorepo built with **Bun**, **Angular**, **NestJS**, **Kysely**, and **SQLite**.
+Nx monorepo built with **Bun**, **Angular**, **NestJS**, **Drizzle ORM**, and **SQLite**.
 
 ## Getting Started
 

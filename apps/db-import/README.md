@@ -1,6 +1,6 @@
 # db-import
 
-Standalone Bun/TypeScript application that imports normalized CSV files from `./data/normalized/` into SQLite using Kysely (`@cs-4347/db-operations` and `@cs-4347/db-schema`).
+Standalone Bun/TypeScript application that imports normalized CSV files from `./data/normalized/` into SQLite using Drizzle ORM (`@cs-4347/db`).
 
 ## Configuration
 

@@ -2,14 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDatabase } from "@cs-4347/db-operations";
-import type { Database } from "@cs-4347/db-schema";
-import type { Kysely } from "kysely";
+import { type AppDatabase, authors, bookAuthors, books, createDatabase } from "@cs-4347/db";
+import { asc, eq } from "drizzle-orm";
 import { importAll, type PATHS } from "./index";
 
 describe("importAll", () => {
     let tempDir: string;
-    let db: Kysely<Database>;
+    let db: AppDatabase;
     let paths: typeof PATHS;
 
     beforeEach(async () => {
@@ -56,11 +55,11 @@ describe("importAll", () => {
     });
 
     afterEach(async () => {
-        await db.destroy();
+        db.$client.close();
         await rm(tempDir, { recursive: true, force: true });
     });
 
-    it("imports normalized CSVs into SQLite via Kysely", async () => {
+    it("imports normalized CSVs into SQLite via Drizzle", async () => {
         const summary = await importAll(db, paths);
 
         expect(summary).toEqual({
@@ -70,21 +69,20 @@ describe("importAll", () => {
             bookAuthors: 3,
         });
 
-        const books = await db.selectFrom("books").selectAll().orderBy("isbn", "asc").execute();
-        expect(books).toEqual([
+        const bookRows = await db.select().from(books).orderBy(asc(books.isbn));
+        expect(bookRows).toEqual([
             { isbn: "9780002005012", title: "Clara Callan: A Novel" },
             { isbn: "9780195153445", title: "Classical Mythology" },
         ]);
 
-        const bookAuthors = await db
-            .selectFrom("book_authors")
-            .innerJoin("authors", "authors.author_id", "book_authors.author_id")
-            .select(["book_authors.isbn", "authors.name"])
-            .where("book_authors.isbn", "=", "9780195153445")
-            .orderBy("authors.author_id", "asc")
-            .execute();
+        const bookAuthorRows = await db
+            .select({ isbn: bookAuthors.isbn, name: authors.name })
+            .from(bookAuthors)
+            .innerJoin(authors, eq(authors.author_id, bookAuthors.author_id))
+            .where(eq(bookAuthors.isbn, "9780195153445"))
+            .orderBy(asc(authors.author_id));
 
-        expect(bookAuthors).toEqual([
+        expect(bookAuthorRows).toEqual([
             { isbn: "9780195153445", name: "Mark P. O. Morford" },
             { isbn: "9780195153445", name: "Robert J. Lenardon" },
         ]);

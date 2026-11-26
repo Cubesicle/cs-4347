@@ -1,7 +1,7 @@
 import { provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import { TestBed } from "@angular/core/testing";
-import type { Book } from "@cs-4347/db-schema";
+import type { Book } from "@cs-4347/db/schema";
 import { App } from "./app";
 
 describe("App", () => {

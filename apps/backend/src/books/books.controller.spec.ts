@@ -1,45 +1,36 @@
-import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
-import type { Database } from "@cs-4347/db-schema";
+import { type AppDatabase, books, createDatabase } from "@cs-4347/db";
 import { NotFoundException } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
-import { Kysely } from "kysely";
+import { DrizzleModule } from "@nestjs/drizzle";
+import { Test, type TestingModule } from "@nestjs/testing";
 import { BooksController } from "./books.controller";
 import { BooksService } from "./books.service";
 
 describe("BooksController", () => {
-    let db: Kysely<Database>;
+    let db: AppDatabase;
+    let moduleRef: TestingModule;
     let controller: BooksController;
 
     beforeEach(async () => {
         db = createDatabase(":memory:");
-        await ensureDatabaseSchema(db);
 
-        const moduleRef = await Test.createTestingModule({
+        moduleRef = await Test.createTestingModule({
+            imports: [DrizzleModule.forRoot({ db })],
             controllers: [BooksController],
-            providers: [
-                BooksService,
-                {
-                    provide: Kysely,
-                    useValue: db,
-                },
-            ],
+            providers: [BooksService],
         }).compile();
 
         controller = moduleRef.get(BooksController);
     });
 
     afterEach(async () => {
-        await db.destroy();
+        await moduleRef.close();
     });
 
     it("returns all books from the books table", async () => {
-        await db
-            .insertInto("books")
-            .values([
-                { isbn: "9780195153445", title: "Classical Mythology" },
-                { isbn: "9780002005012", title: "Clara Callan: A Novel" },
-            ])
-            .execute();
+        await db.insert(books).values([
+            { isbn: "9780195153445", title: "Classical Mythology" },
+            { isbn: "9780002005012", title: "Clara Callan: A Novel" },
+        ]);
 
         const result = await controller.findAll();
         expect(result).toEqual([
@@ -49,10 +40,7 @@ describe("BooksController", () => {
     });
 
     it("returns a single book by ISBN", async () => {
-        await db
-            .insertInto("books")
-            .values({ isbn: "9780195153445", title: "Classical Mythology" })
-            .execute();
+        await db.insert(books).values({ isbn: "9780195153445", title: "Classical Mythology" });
 
         expect(await controller.findOne("9780195153445")).toEqual({
             isbn: "9780195153445",

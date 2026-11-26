@@ -1,25 +1,18 @@
-import type { Book, Database } from "@cs-4347/db-schema";
+import { type AppDatabase, type Book, books } from "@cs-4347/db";
 import { Injectable } from "@nestjs/common";
-import { Kysely } from "kysely";
+import { InjectDrizzle } from "@nestjs/drizzle";
+import { asc, eq } from "drizzle-orm";
 
 @Injectable()
 export class BooksService {
-    constructor(private readonly db: Kysely<Database>) {}
+    constructor(@InjectDrizzle() private readonly db: AppDatabase) {}
 
     async findAll(): Promise<Book[]> {
-        return this.db
-            .selectFrom("books")
-            .select(["isbn", "title"])
-            .orderBy("title", "asc")
-            .orderBy("isbn", "asc")
-            .execute();
+        return this.db.select().from(books).orderBy(asc(books.title), asc(books.isbn));
     }
 
     async findByIsbn(isbn: string): Promise<Book | undefined> {
-        return this.db
-            .selectFrom("books")
-            .select(["isbn", "title"])
-            .where("isbn", "=", isbn)
-            .executeTakeFirst();
+        const [book] = await this.db.select().from(books).where(eq(books.isbn, isbn)).limit(1);
+        return book;
     }
 }

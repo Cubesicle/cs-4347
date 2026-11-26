@@ -35,7 +35,7 @@
     "generators": {
         "@nx/angular:application": {
             "e2eTestRunner": "none",
-            "style": "scss",
+            "style": "css",
             "unitTestRunner": "vitest-angular"
         }
     },

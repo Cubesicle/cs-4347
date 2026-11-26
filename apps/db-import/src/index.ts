@@ -1,9 +1,20 @@
-import { createDatabase, ensureDatabaseSchema } from "@cs-4347/db-operations";
-import type { Author, Book, BookAuthor, Borrower, Database } from "@cs-4347/db-schema";
+import {
+    type AppDatabase,
+    type Author,
+    authors as authorsTable,
+    type Book,
+    type BookAuthor,
+    type Borrower,
+    bookAuthors as bookAuthorsTable,
+    books as booksTable,
+    borrowers as borrowersTable,
+    createDatabase,
+    ensureDatabaseSchema,
+} from "@cs-4347/db";
 import { parse } from "csv/sync";
-import type { Kysely } from "kysely";
 
 const INPUT_DIR = "./data/normalized";
+const INSERT_BATCH_SIZE = 500;
 
 export const PATHS = {
     borrowers: `${INPUT_DIR}/borrowers.csv`,
@@ -29,7 +40,15 @@ export async function readCsv<T>(filePath: string): Promise<CsvRow<T>[]> {
     }) as CsvRow<T>[];
 }
 
-export async function importAll(db: Kysely<Database>, paths = PATHS) {
+function chunk<T>(items: readonly T[], size = INSERT_BATCH_SIZE): T[][] {
+    const batches: T[][] = [];
+    for (let i = 0; i < items.length; i += size) {
+        batches.push(items.slice(i, i + size));
+    }
+    return batches;
+}
+
+export async function importAll(db: AppDatabase, paths = PATHS) {
     const borrowers = await readCsv<Borrower>(paths.borrowers);
     const books = await readCsv<Book>(paths.books);
     const authors: Author[] = (await readCsv<Author>(paths.authors)).map((row) => ({
@@ -41,19 +60,18 @@ export async function importAll(db: Kysely<Database>, paths = PATHS) {
         author_id: Number(row.author_id),
     }));
 
-    await ensureDatabaseSchema(db);
+    ensureDatabaseSchema(db);
 
-    await db.transaction().execute(async (trx) => {
-        await trx.deleteFrom("book_authors").execute();
-        await trx.deleteFrom("authors").execute();
-        await trx.deleteFrom("books").execute();
-        await trx.deleteFrom("borrowers").execute();
+    db.transaction((tx) => {
+        tx.delete(bookAuthorsTable).run();
+        tx.delete(authorsTable).run();
+        tx.delete(booksTable).run();
+        tx.delete(borrowersTable).run();
 
-        if (borrowers.length > 0) await trx.insertInto("borrowers").values(borrowers).execute();
-        if (books.length > 0) await trx.insertInto("books").values(books).execute();
-        if (authors.length > 0) await trx.insertInto("authors").values(authors).execute();
-        if (bookAuthors.length > 0)
-            await trx.insertInto("book_authors").values(bookAuthors).execute();
+        for (const batch of chunk(borrowers)) tx.insert(borrowersTable).values(batch).run();
+        for (const batch of chunk(books)) tx.insert(booksTable).values(batch).run();
+        for (const batch of chunk(authors)) tx.insert(authorsTable).values(batch).run();
+        for (const batch of chunk(bookAuthors)) tx.insert(bookAuthorsTable).values(batch).run();
     });
 
     return {
@@ -72,7 +90,7 @@ export async function main(): Promise<void> {
             `Import complete: ${summary.borrowers} borrowers, ${summary.books} books, ${summary.authors} authors, ${summary.bookAuthors} book_authors.`,
         );
     } finally {
-        await db.destroy();
+        db.$client.close();
     }
 }
 

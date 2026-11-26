@@ -1,8 +1,14 @@
+import { createDatabase } from "@cs-4347/db";
 import { Module } from "@nestjs/common";
+import { DrizzleModule } from "@nestjs/drizzle";
 import { BooksModule } from "./books/books.module";
-import { DatabaseModule } from "./database/database.module";
 
 @Module({
-    imports: [DatabaseModule, BooksModule],
+    imports: [
+        DrizzleModule.forRootAsync({
+            useFactory: () => ({ db: createDatabase() }),
+        }),
+        BooksModule,
+    ],
 })
 export class AppModule {}
