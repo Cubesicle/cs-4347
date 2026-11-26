@@ -6,10 +6,12 @@ import {
     type BookAuthor,
     type Borrower,
     bookAuthors as bookAuthorsTable,
+    bookLoans as bookLoansTable,
     books as booksTable,
     borrowers as borrowersTable,
     createDatabase,
     ensureDatabaseSchema,
+    fines as finesTable,
 } from "@cs-4347/db";
 import { parse } from "csv/sync";
 
@@ -63,6 +65,8 @@ export async function importAll(db: AppDatabase, paths = PATHS) {
     ensureDatabaseSchema(db);
 
     db.transaction((tx) => {
+        tx.delete(finesTable).run();
+        tx.delete(bookLoansTable).run();
         tx.delete(bookAuthorsTable).run();
         tx.delete(authorsTable).run();
         tx.delete(booksTable).run();
