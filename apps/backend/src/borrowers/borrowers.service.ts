@@ -1,13 +1,8 @@
-import type { AppDatabase, Borrower } from "@cs-4347/db";
+import type { AppDatabase, Borrower, NewBorrower } from "@cs-4347/db";
 import { Injectable, NotImplementedException } from "@nestjs/common";
 import { InjectDrizzle } from "@nestjs/drizzle";
 
-export interface CreateBorrowerDto {
-    bname: string;
-    ssn: string;
-    address: string;
-    phone?: string | null;
-}
+export type CreateBorrowerDto = Omit<NewBorrower, "card_id">;
 
 @Injectable()
 export class BorrowersService {
@@ -36,7 +31,7 @@ export class BorrowersService {
     /**
      * TODO: Find a single borrower by `card_id` (or return `undefined`).
      */
-    async findByCardId(_cardId: string): Promise<Borrower | undefined> {
+    async findByCardId(_cardId: Borrower["card_id"]): Promise<Borrower | undefined> {
         throw new NotImplementedException("TODO: Implement BorrowersService.findByCardId()");
     }
 }

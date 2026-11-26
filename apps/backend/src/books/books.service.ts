@@ -3,9 +3,7 @@ import { Injectable, NotImplementedException } from "@nestjs/common";
 import { InjectDrizzle } from "@nestjs/drizzle";
 import { asc, eq } from "drizzle-orm";
 
-export interface BookSearchResult {
-    isbn: string;
-    title: string;
+export interface BookSearchResult extends Book {
     authors: string;
     status: "IN" | "OUT";
 }
@@ -18,7 +16,7 @@ export class BooksService {
         return this.db.select().from(books).orderBy(asc(books.title), asc(books.isbn));
     }
 
-    async findByIsbn(isbn: string): Promise<Book | undefined> {
+    async findByIsbn(isbn: Book["isbn"]): Promise<Book | undefined> {
         const [book] = await this.db.select().from(books).where(eq(books.isbn, isbn)).limit(1);
         return book;
     }

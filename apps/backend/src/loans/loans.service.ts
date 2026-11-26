@@ -1,25 +1,16 @@
-import type { AppDatabase, BookLoan } from "@cs-4347/db";
+import type { AppDatabase, Book, BookLoan, Borrower } from "@cs-4347/db";
 import { Injectable, NotImplementedException } from "@nestjs/common";
 import { InjectDrizzle } from "@nestjs/drizzle";
 
-export interface CheckoutDto {
-    isbn: string;
-    card_id: string;
-}
+export type CheckoutDto = Pick<BookLoan, "isbn" | "card_id">;
 
 export interface CheckInDto {
-    loan_ids: number[];
+    loan_ids: BookLoan["loan_id"][];
 }
 
-export interface ActiveLoanSearchResult {
-    loan_id: number;
-    isbn: string;
-    title: string;
-    card_id: string;
-    bname: string;
-    date_out: string;
-    due_date: string;
-}
+export type ActiveLoanSearchResult = Omit<BookLoan, "date_in"> &
+    Pick<Book, "title"> &
+    Pick<Borrower, "bname">;
 
 @Injectable()
 export class LoansService {
@@ -36,7 +27,11 @@ export class LoansService {
      * - Insert a new `book_loans` row with `date_out = checkoutDate` (default today, `YYYY-MM-DD`),
      *   `due_date = date_out + 14 calendar days`, and `date_in = null`.
      */
-    async checkout(_isbn: string, _cardId: string, _checkoutDate?: string): Promise<BookLoan> {
+    async checkout(
+        _isbn: BookLoan["isbn"],
+        _cardId: BookLoan["card_id"],
+        _checkoutDate?: BookLoan["date_out"],
+    ): Promise<BookLoan> {
         throw new NotImplementedException("TODO: Implement LoansService.checkout()");
     }
 
@@ -58,7 +53,10 @@ export class LoansService {
      * - Verify every loan exists and is currently checked out (`date_in IS NULL`).
      * - Set `date_in = returnDate` (default today, `YYYY-MM-DD`) inside `this.db.transaction((tx) => ...)`.
      */
-    async checkIn(_loanIds: number[], _returnDate?: string): Promise<BookLoan[]> {
+    async checkIn(
+        _loanIds: BookLoan["loan_id"][],
+        _returnDate?: NonNullable<BookLoan["date_in"]>,
+    ): Promise<BookLoan[]> {
         throw new NotImplementedException("TODO: Implement LoansService.checkIn()");
     }
 }

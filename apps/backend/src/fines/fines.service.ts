@@ -1,4 +1,4 @@
-import type { AppDatabase } from "@cs-4347/db";
+import type { AppDatabase, Borrower, Fine } from "@cs-4347/db";
 import { Injectable, NotImplementedException } from "@nestjs/common";
 import { InjectDrizzle } from "@nestjs/drizzle";
 
@@ -8,17 +8,14 @@ export interface RefreshFinesSummary {
     unchanged: number;
 }
 
-export interface BorrowerFineSummary {
-    card_id: string;
-    bname: string;
-    total_fine: string;
+export interface BorrowerFineSummary extends Pick<Borrower, "card_id" | "bname"> {
+    total_fine: Fine["fine_amt"];
     has_unreturned_books: boolean;
 }
 
-export interface PayFinesResult {
-    card_id: string;
+export interface PayFinesResult extends Pick<Borrower, "card_id"> {
     cleared_count: number;
-    total_paid: string;
+    total_paid: Fine["fine_amt"];
 }
 
 @Injectable()
@@ -62,7 +59,7 @@ export class FinesService {
      * - Reject payment if ANY unpaid fine belongs to a book that is not yet returned (`date_in IS NULL`).
      * - Do not allow partial payments: clear all unpaid fines for `cardId` in one transaction.
      */
-    async payFines(_cardId: string): Promise<PayFinesResult> {
+    async payFines(_cardId: Borrower["card_id"]): Promise<PayFinesResult> {
         throw new NotImplementedException("TODO: Implement FinesService.payFines()");
     }
 }
