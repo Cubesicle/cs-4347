@@ -143,7 +143,7 @@ describe("BooksService", () => {
             expect(resultIn2).toEqual([{ isbn: "9780195153446", title: "Classical Mythology", authors: "", status: "IN", },]);
             expect(resultOut).toEqual([{ isbn: "9780002005012", title: "Clara Callan: A Novel", authors: "", status: "OUT",},]);
         });
-
+        describe("given data", () => {
         beforeEach(async () => {
             await db.insert(books).values([
                 { isbn: "0923398364", title: "Houses of Williamsburg, Virginia" },
@@ -246,5 +246,5 @@ describe("BooksService", () => {
                 },
             ]);
         });
-    });
+    });});
 });
