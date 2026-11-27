@@ -1,7 +1,7 @@
-import { type AppDatabase, type Book, books } from "@cs-4347/db";
+import { type AppDatabase, authors, type Book, bookAuthors, bookLoans, books } from "@cs-4347/db";
 import { Injectable } from "@nestjs/common";
 import { InjectDrizzle } from "@nestjs/drizzle";
-import { eq, sql } from "drizzle-orm";
+import { and, asc, eq, exists, isNull, like, or } from "drizzle-orm";
 
 export interface BookSearchResult extends Book {
     authors: string;
@@ -18,43 +18,61 @@ export class BooksService {
     }
 
     async search(query: string): Promise<BookSearchResult[]> {
-        const searchObj = `%${query.trim()}%`;
+        const term = query.trim();
+        const pattern = `%${term}%`;
 
-        return this.db.all<BookSearchResult>(sql`
-            SELECT
-                b.isbn, b.title,
-                COALESCE(
-                    (SELECT GROUP_CONCAT(author_list.name, ', ')
-                    FROM (
-                        SELECT DISTINCT a.name
-                        FROM book_authors ba
-                        INNER JOIN authors a ON ba.author_id = a.author_id
-                        WHERE ba.isbn = b.isbn ORDER BY a.name
-                        )
-                    AS author_list),''
-                ) AS authors,
-                 
-                CASE
-                    WHEN EXISTS(
-                        SELECT 1
-                        FROM book_loans bl
-                        WHERE bl.isbn = b.isbn AND bl.date_in IS NULL
-                    )
-                    THEN 'OUT'
-                    ELSE 'IN'
-                END AS status
+        const baseQuery = this.db
+            .select({
+                isbn: books.isbn,
+                title: books.title,
+                authorName: authors.name,
+                activeLoanId: bookLoans.loan_id,
+            })
+            .from(books)
+            .leftJoin(bookAuthors, eq(books.isbn, bookAuthors.isbn))
+            .leftJoin(authors, eq(bookAuthors.author_id, authors.author_id))
+            .leftJoin(bookLoans, and(eq(books.isbn, bookLoans.isbn), isNull(bookLoans.date_in)));
 
-            FROM book b
-            WHERE
-                LOWER(b.isbn) LIKE LOWER(${searchObj})
-                OR LOWER(b.title) LIKE LOWER(${searchObj})
-                OR EXISTS(
-                    SELECT 1
-                    FROM book_authors ba
-                    INNER JOIN authors a ON ba.author_id = a.author_id
-                    WHERE ba.isbn = b.isbn AND LOWER(a.name) LIKE LOWER(${searchObj})
-                    )
-            ORDER BY b.title, b.isbn
-            `);
+        const matchingAuthor = this.db
+            .select({ isbn: bookAuthors.isbn })
+            .from(bookAuthors)
+            .innerJoin(authors, eq(bookAuthors.author_id, authors.author_id))
+            .where(and(eq(bookAuthors.isbn, books.isbn), like(authors.name, pattern)));
+
+        const rows = await (term
+            ? baseQuery.where(
+                  or(like(books.isbn, pattern), like(books.title, pattern), exists(matchingAuthor)),
+              )
+            : baseQuery
+        ).orderBy(asc(books.title), asc(books.isbn), asc(authors.name));
+
+        const results = new Map<
+            string,
+            { isbn: string; title: string; authors: Set<string>; status: "IN" | "OUT" }
+        >();
+
+        for (const row of rows) {
+            let entry = results.get(row.isbn);
+            if (!entry) {
+                entry = {
+                    isbn: row.isbn,
+                    title: row.title,
+                    authors: new Set(),
+                    status: row.activeLoanId !== null ? "OUT" : "IN",
+                };
+                results.set(row.isbn, entry);
+            }
+
+            if (row.authorName) {
+                entry.authors.add(row.authorName);
+            }
+        }
+
+        return Array.from(results.values(), ({ isbn, title, authors: authorSet, status }) => ({
+            isbn,
+            title,
+            authors: Array.from(authorSet).join(", "),
+            status,
+        }));
     }
 }
