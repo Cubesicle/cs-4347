@@ -34,25 +34,26 @@ describe("BooksController", () => {
 
         const result = await controller.findAll();
         expect(result).toEqual([
-            { isbn: "9780002005012", title: "Clara Callan: A Novel" },
-            { isbn: "9780195153445", title: "Classical Mythology" },
+            { isbn: "9780002005012", title: "Clara Callan: A Novel", authors: "", status: "IN" },
+            { isbn: "9780195153445", title: "Classical Mythology", authors: "", status: "IN" },
         ]);
     });
 
     it("returns a single book by ISBN", async () => {
-        await db.insert(books).values({ isbn: "9780195153445", title: "Classical Mythology" });
+        await db.insert(books).values([
+            { isbn: "9780195153445", title: "Classical Mythology" },
+            { isbn: "9780002005012", title: "Clara Callan: A Novel" },
+        ]);
 
-        expect(await controller.findOne("9780195153445")).toEqual({
+        expect(await controller.findAll("9780195153445")).toEqual([{
             isbn: "9780195153445",
             title: "Classical Mythology",
-        });
+            authors: "",
+            status: "IN"
+        }]);
     });
 
     it("throws NotFoundException when ISBN does not exist", async () => {
         await expect(controller.findOne("missing-isbn")).rejects.toThrow(NotFoundException);
-    });
-
-    describe("search query", () => {
-        it.todo("delegates GET /api/books?q=... to BooksService.search()");
     });
 });
