@@ -1,5 +1,18 @@
-import type { AppDatabase, Borrower, Fine } from "@cs-4347/db";
-import { Injectable, NotImplementedException } from "@nestjs/common";
+
+import {
+    type AppDatabase,
+    type Borrower,
+    type Fine,
+    bookLoans,
+    borrowers,
+    fines,
+} from "@cs-4347/db";
+import { and, eq, inArray } from "drizzle-orm";
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from "@nestjs/common";
 import { InjectDrizzle } from "@nestjs/drizzle";
 
 export interface RefreshFinesSummary {
@@ -18,48 +31,259 @@ export interface PayFinesResult extends Pick<Borrower, "card_id"> {
     total_paid: Fine["fine_amt"];
 }
 
+// Convert dollar amounts to integer cents.
+function toCents(amount: string | number): number {
+    return Math.round(Number(amount) * 100);
+}
+
+// Calculate the number of days between two YYYY-MM-DD dates.
+function diffDays(start: string, end: string): number {
+    const startTime = Date.parse(`${start}T00:00:00Z`);
+    const endTime = Date.parse(`${end}T00:00:00Z`);
+
+    return Math.round((endTime - startTime) / 86_400_000);
+}
+
 @Injectable()
 export class FinesService {
     constructor(@InjectDrizzle() protected readonly db: AppDatabase) {}
 
     /**
-     * TODO: Calculate and refresh entries in the `fines` table ($0.25/day).
+     * Calculate and refresh entries in the fines table ($0.25/day).
      *
-     * Scenarios:
-     * 1. Returned late (`date_in IS NOT NULL` and `date_in > due_date`):
-     *    fine = diffDays(due_date, date_in) * $0.25
-     * 2. Still checked out & overdue (`date_in IS NULL` and `today > due_date`):
-     *    estimated fine = diffDays(due_date, today) * $0.25
-     *
-     * Upsert rules for each late `book_loans` record:
-     * - No existing `fines` row -> insert with `paid = false`.
-     * - Existing row with `paid === false` -> update `fine_amt` only if amount changed (compare in cents!).
-     * - Existing row with `paid === true` -> do nothing.
+     * - Insert fines for overdue loans without an existing fine.
+     * - Update unpaid fines if their amount has changed.
+     * - Never modify paid fines.
      */
-    async refreshFines(_today?: string): Promise<RefreshFinesSummary> {
-        throw new NotImplementedException("TODO: Implement FinesService.refreshFines()");
+    refreshFines(_today?: string): RefreshFinesSummary {
+        const today = _today ?? new Date().toISOString().slice(0, 10);
+
+        const summary: RefreshFinesSummary = {
+            inserted: 0,
+            updated: 0,
+            unchanged: 0,
+        };
+
+        this.db.transaction((tx) => {
+            const loans = tx.select().from(bookLoans).all();
+            const existingFines = tx.select().from(fines).all();
+
+            const fineMap = new Map(
+                existingFines.map((fine) => [fine.loan_id, fine]),
+            );
+
+            for (const loan of loans) {
+                let lateDays = 0;
+
+                if (loan.date_in !== null) {
+                    // Book has been returned.
+                    lateDays = Math.max(
+                        0,
+                        diffDays(loan.due_date, loan.date_in),
+                    );
+                } else {
+                    // Book is still checked out.
+                    lateDays = Math.max(
+                        0,
+                        diffDays(loan.due_date, today),
+                    );
+                }
+
+                if (lateDays === 0) {
+                    continue;
+                }
+
+                const fineCents = lateDays * 25;
+                const fineAmount = (fineCents / 100).toFixed(2);
+
+                const existingFine = fineMap.get(loan.loan_id);
+
+                if (!existingFine) {
+                    // Insert a new fine.
+                    tx.insert(fines)
+                        .values({
+                            loan_id: loan.loan_id,
+                            fine_amt: fineAmount,
+                            paid: false,
+                        })
+                        .run();
+
+                    summary.inserted++;
+                } else if (existingFine.paid) {
+                    // Never modify an already-paid fine.
+                    summary.unchanged++;
+                } else if (
+                    toCents(existingFine.fine_amt) !== fineCents
+                ) {
+                    // Update an existing unpaid fine.
+                    tx.update(fines)
+                        .set({ fine_amt: fineAmount })
+                        .where(eq(fines.loan_id, loan.loan_id))
+                        .run();
+
+                    summary.updated++;
+                } else {
+                    summary.unchanged++;
+                }
+            }
+        });
+
+        return summary;
     }
 
     /**
-     * TODO: List fines grouped by `borrower.card_id` with summed `fine_amt` (2 decimal places).
+     * List fines grouped by borrower.
      *
-     * Requirements:
-     * - Filter out previously paid fines (`paid === true`) when `includePaid` is false (default).
-     * - Format `total_fine` to 2 decimal places (e.g. `"1.50"`).
+     * - Excludes paid fines by default.
+     * - Includes paid fines when includePaid is true.
+     * - Calculates total fine amounts in cents.
+     * - Indicates whether the borrower has unreturned books.
      */
-    async listFines(_options?: { includePaid?: boolean }): Promise<BorrowerFineSummary[]> {
-        throw new NotImplementedException("TODO: Implement FinesService.listFines()");
+    listFines(
+        options?: { includePaid?: boolean },
+    ): BorrowerFineSummary[] {
+        const includePaid = options?.includePaid ?? false;
+
+        const rows = this.db
+            .select({
+                card_id: borrowers.card_id,
+                bname: borrowers.bname,
+                loan_id: bookLoans.loan_id,
+                date_in: bookLoans.date_in,
+                fine_amt: fines.fine_amt,
+                paid: fines.paid,
+            })
+            .from(borrowers)
+            .leftJoin(
+                bookLoans,
+                eq(borrowers.card_id, bookLoans.card_id),
+            )
+            .leftJoin(
+                fines,
+                eq(bookLoans.loan_id, fines.loan_id),
+            )
+            .all();
+
+        const borrowerMap = new Map<
+            string,
+            {
+                card_id: string;
+                bname: string;
+                totalCents: number;
+                fineCount: number;
+                has_unreturned_books: boolean;
+            }
+        >();
+
+        for (const row of rows) {
+            let borrower = borrowerMap.get(row.card_id);
+
+            if (!borrower) {
+                borrower = {
+                    card_id: row.card_id,
+                    bname: row.bname,
+                    totalCents: 0,
+                    fineCount: 0,
+                    has_unreturned_books: false,
+                };
+
+                borrowerMap.set(row.card_id, borrower);
+            }
+
+            // Check all loans, not just loans with fines.
+            if (row.loan_id !== null && row.date_in === null) {
+                borrower.has_unreturned_books = true;
+            }
+
+            // Ignore paid fines unless requested.
+            if (
+                row.fine_amt === null ||
+                row.paid === null ||
+                (!includePaid && row.paid)
+            ) {
+                continue;
+            }
+
+            borrower.totalCents += toCents(row.fine_amt);
+            borrower.fineCount++;
+        }
+
+        return Array.from(borrowerMap.values())
+            .filter((borrower) => borrower.fineCount > 0)
+            .map((borrower) => ({
+                card_id: borrower.card_id,
+                bname: borrower.bname,
+                total_fine: (borrower.totalCents / 100).toFixed(2),
+                has_unreturned_books: borrower.has_unreturned_books,
+            }));
     }
 
     /**
-     * TODO: Enter full payment of all unpaid fines for a borrower (`paid = true`).
+     * Enter full payment of all unpaid fines for a borrower.
      *
-     * Requirements:
-     * - Fail if borrower has no unpaid fines.
-     * - Reject payment if ANY unpaid fine belongs to a book that is not yet returned (`date_in IS NULL`).
-     * - Do not allow partial payments: clear all unpaid fines for `cardId` in one transaction.
+     * - Reject borrowers without unpaid fines.
+     * - Reject payment if any unpaid fine belongs to an unreturned book.
+     * - Mark all unpaid fines as paid in one transaction.
      */
-    async payFines(_cardId: Borrower["card_id"]): Promise<PayFinesResult> {
-        throw new NotImplementedException("TODO: Implement FinesService.payFines()");
+    payFines(
+        cardId: Borrower["card_id"],
+    ): PayFinesResult {
+        return this.db.transaction((tx) => {
+            const unpaidFines = tx
+                .select({
+                    loan_id: fines.loan_id,
+                    fine_amt: fines.fine_amt,
+                    date_in: bookLoans.date_in,
+                })
+                .from(fines)
+                .innerJoin(
+                    bookLoans,
+                    eq(fines.loan_id, bookLoans.loan_id),
+                )
+                .where(
+                    and(
+                        eq(bookLoans.card_id, cardId),
+                        eq(fines.paid, false),
+                    ),
+                )
+                .all();
+
+            if (unpaidFines.length === 0) {
+                throw new NotFoundException(
+                    "Borrower has no unpaid fines",
+                );
+            }
+
+            // All outstanding fines must belong to returned books.
+            if (unpaidFines.some((fine) => fine.date_in === null)) {
+                throw new BadRequestException(
+                    "Cannot pay fines for books that have not been returned",
+                );
+            }
+
+            const loanIds = unpaidFines.map((fine) => fine.loan_id);
+
+            const totalCents = unpaidFines.reduce(
+                (total, fine) => total + toCents(fine.fine_amt),
+                0,
+            );
+
+            // Clear all unpaid fines in one transaction.
+            tx.update(fines)
+                .set({ paid: true })
+                .where(
+                    and(
+                        inArray(fines.loan_id, loanIds),
+                        eq(fines.paid, false),
+                    ),
+                )
+                .run();
+
+            return {
+                card_id: cardId,
+                cleared_count: unpaidFines.length,
+                total_paid: (totalCents / 100).toFixed(2),
+            };
+        });
     }
 }
