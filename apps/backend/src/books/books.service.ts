@@ -12,16 +12,21 @@ export interface BookSearchResult extends Book {
 export class BooksService {
     constructor(@InjectDrizzle() private readonly db: AppDatabase) {}
 
-    async findByIsbn(isbn: Book["isbn"]): Promise<Book | undefined> {
-        const [book] = await this.db.select().from(books).where(eq(books.isbn, isbn)).limit(1);
-        return book;
-    }
-
     async search(query: string): Promise<BookSearchResult[]> {
         const term = query.trim();
+        if (!term) {
+            return [];
+        }
+
         const pattern = `%${term}%`;
 
-        const baseQuery = this.db
+        const matchingAuthor = this.db
+            .select({ isbn: bookAuthors.isbn })
+            .from(bookAuthors)
+            .innerJoin(authors, eq(bookAuthors.author_id, authors.author_id))
+            .where(and(eq(bookAuthors.isbn, books.isbn), like(authors.name, pattern)));
+
+        const rows = await this.db
             .select({
                 isbn: books.isbn,
                 title: books.title,
@@ -31,20 +36,11 @@ export class BooksService {
             .from(books)
             .leftJoin(bookAuthors, eq(books.isbn, bookAuthors.isbn))
             .leftJoin(authors, eq(bookAuthors.author_id, authors.author_id))
-            .leftJoin(bookLoans, and(eq(books.isbn, bookLoans.isbn), isNull(bookLoans.date_in)));
-
-        const matchingAuthor = this.db
-            .select({ isbn: bookAuthors.isbn })
-            .from(bookAuthors)
-            .innerJoin(authors, eq(bookAuthors.author_id, authors.author_id))
-            .where(and(eq(bookAuthors.isbn, books.isbn), like(authors.name, pattern)));
-
-        const rows = await (term
-            ? baseQuery.where(
-                  or(like(books.isbn, pattern), like(books.title, pattern), exists(matchingAuthor)),
-              )
-            : baseQuery
-        ).orderBy(asc(books.title), asc(books.isbn), asc(authors.name));
+            .leftJoin(bookLoans, and(eq(books.isbn, bookLoans.isbn), isNull(bookLoans.date_in)))
+            .where(
+                or(like(books.isbn, pattern), like(books.title, pattern), exists(matchingAuthor)),
+            )
+            .orderBy(asc(books.title), asc(books.isbn), asc(authors.name));
 
         const results = new Map<
             string,

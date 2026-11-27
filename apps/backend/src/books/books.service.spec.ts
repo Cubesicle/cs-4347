@@ -31,34 +31,6 @@ describe("BooksService", () => {
         await moduleRef.close();
     });
 
-    it("returns an empty list when the books table has no rows", async () => {
-        expect(await service.search("")).toEqual([]);
-    });
-
-    it("returns all books ordered by title and isbn", async () => {
-        await db.insert(books).values([
-            { isbn: "9780195153446", title: "Classical Mythology" },
-            { isbn: "9780002005012", title: "Clara Callan: A Novel" },
-            { isbn: "9780195153445", title: "Classical Mythology" },
-        ]);
-
-        expect(await service.search("")).toEqual([
-            { isbn: "9780002005012", title: "Clara Callan: A Novel", authors: "", status: "IN" },
-            { isbn: "9780195153445", title: "Classical Mythology", authors: "", status: "IN" },
-            { isbn: "9780195153446", title: "Classical Mythology", authors: "", status: "IN" },
-        ]);
-    });
-
-    it("finds a book by ISBN and returns undefined when absent", async () => {
-        await db.insert(books).values({ isbn: "9780060973124", title: "Decision In Normandy" });
-
-        expect(await service.findByIsbn("9780060973124")).toEqual({
-            isbn: "9780060973124",
-            title: "Decision In Normandy",
-        });
-        expect(await service.findByIsbn("0000000000000")).toBeUndefined();
-    });
-
     describe("search", () => {
         beforeEach(async () => {
             await db.insert(books).values([
@@ -106,6 +78,11 @@ describe("BooksService", () => {
                     date_in: "2026-10-10",
                 },
             ]);
+        });
+
+        it("returns an empty array when the query is blank", async () => {
+            expect(await service.search("")).toEqual([]);
+            expect(await service.search("   ")).toEqual([]);
         });
 
         it("matches case-insensitive substrings across ISBN, title, and author names", async () => {
