@@ -32,7 +32,7 @@ describe("BooksService", () => {
     });
 
     it("returns an empty list when the books table has no rows", async () => {
-        expect(await service.findAll()).toEqual([]);
+        expect(await service.search("")).toEqual([]);
     });
 
     it("returns all books ordered by title and isbn", async () => {
@@ -42,10 +42,10 @@ describe("BooksService", () => {
             { isbn: "9780195153445", title: "Classical Mythology" },
         ]);
 
-        expect(await service.findAll()).toEqual([
-            { isbn: "9780002005012", title: "Clara Callan: A Novel" },
-            { isbn: "9780195153445", title: "Classical Mythology" },
-            { isbn: "9780195153446", title: "Classical Mythology" },
+        expect(await service.search("")).toEqual([
+            { isbn: "9780002005012", title: "Clara Callan: A Novel", authors: "", status: "IN" },
+            { isbn: "9780195153445", title: "Classical Mythology", authors: "", status: "IN" },
+            { isbn: "9780195153446", title: "Classical Mythology", authors: "", status: "IN" },
         ]);
     });
 
@@ -109,7 +109,7 @@ describe("BooksService", () => {
         });
 
         it("matches case-insensitive substrings across ISBN, title, and author names", async () => {
-            const results = await service.search("WiLl");
+            const results = await service.search("  WiLl  ");
             const isbns = results.map((r) => r.isbn).sort();
 
             expect(isbns).toEqual(["0891787631", "0923398364", "T619875682", "X2723786q6"]);

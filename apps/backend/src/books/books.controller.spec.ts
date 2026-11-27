@@ -42,8 +42,8 @@ describe("BooksController", () => {
 
         const result = await controller.findAll();
         expect(result).toEqual([
-            { isbn: "9780002005012", title: "Clara Callan: A Novel" },
-            { isbn: "9780195153445", title: "Classical Mythology" },
+            { isbn: "9780002005012", title: "Clara Callan: A Novel", authors: "", status: "IN" },
+            { isbn: "9780195153445", title: "Classical Mythology", authors: "", status: "IN" },
         ]);
     });
 
