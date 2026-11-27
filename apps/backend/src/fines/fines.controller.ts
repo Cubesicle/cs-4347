@@ -11,23 +11,17 @@ export class FinesController {
     constructor(private readonly finesService: FinesService) {}
 
     @Post("refresh")
-    refresh(): RefreshFinesSummary {
+    async refresh(): Promise<RefreshFinesSummary> {
         return this.finesService.refreshFines();
     }
 
     @Get()
-    list(
-        @Query("includePaid") includePaid?: string,
-    ): BorrowerFineSummary[] {
-        return this.finesService.listFines({
-            includePaid: includePaid === "true",
-        });
+    async list(@Query("includePaid") includePaid?: string): Promise<BorrowerFineSummary[]> {
+        return this.finesService.listFines({ includePaid: includePaid === "true" });
     }
 
     @Post(":cardId/pay")
-    pay(
-        @Param("cardId") cardId: string,
-    ): PayFinesResult {
+    async pay(@Param("cardId") cardId: string): Promise<PayFinesResult> {
         return this.finesService.payFines(cardId);
     }
 }
