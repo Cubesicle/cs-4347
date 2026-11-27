@@ -16,7 +16,7 @@ import {
     NotImplementedException,
 } from "@nestjs/common";
 import { InjectDrizzle } from "@nestjs/drizzle";
-import { and, asc, eq, isNull, like, or } from "drizzle-orm";
+import {and, asc, eq, inArray, isNull, like, or} from "drizzle-orm";
 
 export type CheckoutDto = Pick<BookLoan, "isbn" | "card_id">;
 
@@ -171,7 +171,6 @@ export class LoansService {
     }
 
     /**
-     * TODO: Check in 1 to 3 selected active loans atomically.
      *
      * Requirements:
      * - Validate 1 <= loanIds.length <= 3 (deduplicate / reject invalid counts).
@@ -179,9 +178,50 @@ export class LoansService {
      * - Set `date_in = returnDate` (default today, `YYYY-MM-DD`) inside `this.db.transaction((tx) => ...)`.
      */
     async checkIn(
-        _loanIds: BookLoan["loan_id"][],
-        _returnDate?: NonNullable<BookLoan["date_in"]>,
+        loanIds: BookLoan["loan_id"][],
+        returnDate?: NonNullable<BookLoan["date_in"]>,
     ): Promise<BookLoan[]> {
-        throw new NotImplementedException("TODO: Implement LoansService.checkIn()");
+        const uniqueLoanIds = [...new Set(loanIds)];
+
+        if (
+            uniqueLoanIds.length < 1 ||
+            uniqueLoanIds.length > 3 ||
+            uniqueLoanIds.some((id) => !Number.isInteger(id) || id <= 0)
+        ) {
+            throw new BadRequestException(
+                "You must provide between 1 and 3 valid loan IDs.",
+            );
+        }
+
+        const dateIn = returnDate ?? new Date().toISOString().slice(0, 10);
+
+        return this.db.transaction((tx) => {
+            const loans = tx
+                .select()
+                .from(bookLoans)
+                .where(inArray(bookLoans.loan_id, uniqueLoanIds))
+                .all();
+
+            if (loans.length !== uniqueLoanIds.length) {
+                throw new NotFoundException(
+                    "One or more loans could not be found.",
+                );
+            }
+
+            const inactiveLoan = loans.find((loan) => loan.date_in !== null);
+
+            if (inactiveLoan) {
+                throw new ConflictException(
+                    `Loan ${inactiveLoan.loan_id} has already been checked in.`,
+                );
+            }
+
+            return tx
+                .update(bookLoans)
+                .set({ date_in: dateIn })
+                .where(inArray(bookLoans.loan_id, uniqueLoanIds))
+                .returning()
+                .all();
+        });
     }
 }
