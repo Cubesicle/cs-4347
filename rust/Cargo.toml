@@ -1,0 +1,9 @@
+[workspace]
+resolver = "3"
+members = ["crates/db", "crates/api", "crates/normalize", "crates/db-import", "crates/frontend"]
+default-members = ["crates/db", "crates/api", "crates/normalize", "crates/db-import"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+publish = false
