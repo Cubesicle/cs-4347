@@ -1,7 +1,6 @@
-import { Component, inject, type OnInit, signal } from "@angular/core";
+import { Component, inject, signal } from "@angular/core";
 import { RouterModule } from "@angular/router";
-import type { Book } from "@cs-4347/db/schema";
-import { BooksService } from "./books/books.service";
+import { type BookSearchResult, BooksService } from "./books/books.service";
 
 @Component({
     imports: [RouterModule],
@@ -9,22 +8,44 @@ import { BooksService } from "./books/books.service";
     templateUrl: "./app.html",
     styleUrl: "./app.css",
 })
-export class App implements OnInit {
+export class App {
     private readonly booksService = inject(BooksService);
 
-    protected readonly title = "Library Books";
-    protected readonly books = signal<Book[]>([]);
-    protected readonly loading = signal<boolean>(true);
+    protected readonly title = "Library Book Search";
+    protected readonly query = signal("");
+    protected readonly books = signal<BookSearchResult[]>([]);
+    protected readonly loading = signal(false);
+    protected readonly hasSearched = signal(false);
     protected readonly error = signal<string | null>(null);
 
-    ngOnInit(): void {
-        this.booksService.getAllBooks().subscribe({
+    protected onQueryInput(event: Event): void {
+        this.query.set((event.target as HTMLInputElement).value);
+    }
+
+    protected onSearch(event: Event): void {
+        event.preventDefault();
+
+        const term = this.query().trim();
+        if (!term) {
+            this.books.set([]);
+            this.hasSearched.set(false);
+            this.error.set(null);
+            return;
+        }
+
+        this.loading.set(true);
+        this.error.set(null);
+
+        this.booksService.searchBooks(term).subscribe({
             next: (rows) => {
                 this.books.set(rows);
+                this.hasSearched.set(true);
                 this.loading.set(false);
             },
             error: () => {
-                this.error.set("Failed to load books from /api/books.");
+                this.books.set([]);
+                this.hasSearched.set(true);
+                this.error.set("Failed to search books from /api/books.");
                 this.loading.set(false);
             },
         });

@@ -26,6 +26,36 @@
     font-size: 0.95rem;
 }
 
+.search-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+}
+
+.search-button {
+    padding: 0.6rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #ffffff;
+    background: #1e293b;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.search-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .status {
     padding: 1rem;
     border-radius: 6px;
@@ -61,4 +91,22 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     white-space: nowrap;
     width: 12rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge.in {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge.out {
+    background: #fee2e2;
+    color: #991b1b;
 }

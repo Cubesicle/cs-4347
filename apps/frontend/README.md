@@ -5,7 +5,7 @@ Angular frontend application built with `@angular/build:application`, standalone
 ## Features
 
 - Proxies `/api` requests to `http://localhost:3000` via `proxy.conf.json`.
-- Fetches and displays all rows from `GET /api/books` using `BooksService` and shared `Book` types from `@cs-4347/db/schema`.
+- Searches books by ISBN, title, or author via `GET /api/books?q=...` using `BooksService` and shared `Book` types from `@cs-4347/db/schema`, displaying ISBN, title, comma-separated authors, and `IN`/`OUT` status.
 
 ## Commands
 

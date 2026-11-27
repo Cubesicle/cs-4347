@@ -1,23 +1,41 @@
 <main class="container">
     <header class="header">
         <h1>{{ title }}</h1>
-        @if (!loading() && !error()) {
-            <p class="count">{{ books().length }} books in database</p>
+        @if (hasSearched() && !loading() && !error()) {
+            <p class="count">
+                {{ books().length }} {{ books().length === 1 ? "result" : "results" }}
+            </p>
         }
     </header>
 
+    <form class="search-form" (submit)="onSearch($event)">
+        <input
+            type="search"
+            class="search-input"
+            aria-label="Search books by ISBN, title, or author"
+            placeholder="Search by ISBN, title, or author..."
+            [value]="query()"
+            (input)="onQueryInput($event)"
+        />
+        <button type="submit" class="search-button" [disabled]="loading()">Search</button>
+    </form>
+
     @if (loading()) {
-        <p class="status">Loading books...</p>
+        <p class="status">Searching books...</p>
     } @else if (error(); as message) {
         <p class="status error" role="alert">{{ message }}</p>
+    } @else if (!hasSearched()) {
+        <p class="status">Enter an ISBN, title, or author name to search the library catalog.</p>
     } @else if (books().length === 0) {
-        <p class="status">No books found. Run the database importer to populate the books table.</p>
+        <p class="status">No books matched your search.</p>
     } @else {
         <table class="books-table">
             <thead>
                 <tr>
                     <th scope="col">ISBN</th>
                     <th scope="col">Title</th>
+                    <th scope="col">Authors</th>
+                    <th scope="col">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -25,6 +43,16 @@
                     <tr>
                         <td class="isbn">{{ book.isbn }}</td>
                         <td>{{ book.title }}</td>
+                        <td>{{ book.authors || "—" }}</td>
+                        <td>
+                            <span
+                                class="badge"
+                                [class.in]="book.status === 'IN'"
+                                [class.out]="book.status === 'OUT'"
+                            >
+                                {{ book.status }}
+                            </span>
+                        </td>
                     </tr>
                 }
             </tbody>
