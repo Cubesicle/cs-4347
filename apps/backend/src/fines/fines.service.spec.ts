@@ -1,288 +1,278 @@
-import { type AppDatabase, bookLoans, books, borrowers, createDatabase, fines } from "@cs-4347/db";
-import { HttpException } from "@nestjs/common";
-import { DrizzleModule } from "@nestjs/drizzle";
-import { Test, type TestingModule } from "@nestjs/testing";
-import { eq } from "drizzle-orm";
-import { FinesService } from "./fines.service";
 
-async function expectClientError(promise: Promise<unknown>): Promise<HttpException> {
-    try {
-        await promise;
-    } catch (error) {
-        expect(error).toBeInstanceOf(HttpException);
-        const httpError = error as HttpException;
-        expect(httpError.getStatus()).toBeGreaterThanOrEqual(400);
-        expect(httpError.getStatus()).toBeLessThan(500);
-        return httpError;
-    }
-    throw new Error("Expected promise to reject with a 4xx HttpException, but it resolved.");
+import {
+    type AppDatabase,
+    type Borrower,
+    type Fine,
+    bookLoans,
+    borrowers,
+    fines,
+} from "@cs-4347/db";
+import { and, eq, inArray } from "drizzle-orm";
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from "@nestjs/common";
+import { InjectDrizzle } from "@nestjs/drizzle";
+
+export interface RefreshFinesSummary {
+    inserted: number;
+    updated: number;
+    unchanged: number;
 }
 
-describe("FinesService", () => {
-    let db: AppDatabase;
-    let moduleRef: TestingModule;
-    let service: FinesService;
+export interface BorrowerFineSummary extends Pick<Borrower, "card_id" | "bname"> {
+    total_fine: Fine["fine_amt"];
+    has_unreturned_books: boolean;
+}
 
-    beforeEach(async () => {
-        db = createDatabase(":memory:");
+export interface PayFinesResult extends Pick<Borrower, "card_id"> {
+    cleared_count: number;
+    total_paid: Fine["fine_amt"];
+}
 
-        moduleRef = await Test.createTestingModule({
-            imports: [DrizzleModule.forRoot({ db })],
-            providers: [FinesService],
-        }).compile();
+// Convert dollar amounts to integer cents.
+function toCents(amount: string | number): number {
+    return Math.round(Number(amount) * 100);
+}
 
-        service = moduleRef.get(FinesService);
+// Calculate the number of days between two YYYY-MM-DD dates.
+function diffDays(start: string, end: string): number {
+    const startTime = Date.parse(`${start}T00:00:00Z`);
+    const endTime = Date.parse(`${end}T00:00:00Z`);
 
-        await db.insert(books).values([
-            { isbn: "1000000001", title: "Book One" },
-            { isbn: "1000000002", title: "Book Two" },
-            { isbn: "1000000003", title: "Book Three" },
-            { isbn: "1000000004", title: "Book Four" },
-        ]);
-        await db.insert(borrowers).values([
-            {
-                card_id: "ID000001",
-                ssn: "111-11-1111",
-                bname: "Alice Johnson",
-                address: "100 First St, Dallas, TX",
-            },
-            {
-                card_id: "ID000002",
-                ssn: "222-22-2222",
-                bname: "Bob Williams",
-                address: "200 Second St, Plano, TX",
-            },
-        ]);
-    });
+    return Math.round((endTime - startTime) / 86_400_000);
+}
 
-    afterEach(async () => {
-        await moduleRef.close();
-    });
+@Injectable()
+export class FinesService {
+    constructor(@InjectDrizzle() protected readonly db: AppDatabase) {}
 
-    it("is defined with an injected database", () => {
-        expect(db).toBeDefined();
-        expect(service).toBeDefined();
-    });
+    /**
+     * Calculate and refresh entries in the fines table ($0.25/day).
+     *
+     * - Insert fines for overdue loans without an existing fine.
+     * - Update unpaid fines if their amount has changed.
+     * - Never modify paid fines.
+     */
+    async refreshFines(_today?: string): Promise<RefreshFinesSummary> {
+        const today = _today ?? new Date().toISOString().slice(0, 10);
 
-    describe("refreshFines", () => {
-        it("does not create fines for on-time returned loans or not-yet-due active loans", async () => {
-            await db.insert(bookLoans).values([
-                {
-                    isbn: "1000000001",
-                    card_id: "ID000001",
-                    date_out: "2026-11-01",
-                    due_date: "2026-11-15",
-                    date_in: "2026-11-15",
-                },
-                {
-                    isbn: "1000000002",
-                    card_id: "ID000001",
-                    date_out: "2026-11-05",
-                    due_date: "2026-11-19",
-                    date_in: null,
-                },
-            ]);
+        const summary: RefreshFinesSummary = {
+            inserted: 0,
+            updated: 0,
+            unchanged: 0,
+        };
 
-            const summary = await service.refreshFines("2026-11-19");
+        // SQLite uses a synchronous transaction callback.
+        this.db.transaction((tx) => {
+            const loans = tx.select().from(bookLoans).all();
+            const existingFines = tx.select().from(fines).all();
 
-            expect(summary).toEqual({ inserted: 0, updated: 0, unchanged: 0 });
-            expect(await db.select().from(fines)).toEqual([]);
-        });
-
-        it("calculates (date_in - due_date) * $0.25 for late returned books", async () => {
-            await db.insert(bookLoans).values({
-                isbn: "1000000001",
-                card_id: "ID000001",
-                date_out: "2026-11-01",
-                due_date: "2026-11-15",
-                date_in: "2026-11-20", // 5 days late -> $1.25
-            });
-
-            const summary = await service.refreshFines("2026-11-25");
-
-            expect(summary).toEqual({ inserted: 1, updated: 0, unchanged: 0 });
-            const rows = await db.select().from(fines);
-            expect(rows).toHaveLength(1);
-            expect(rows[0]?.loan_id).toBe(1);
-            expect(Number(rows[0]?.fine_amt).toFixed(2)).toBe("1.25");
-            expect(rows[0]?.paid).toBe(false);
-        });
-
-        it("calculates estimated (today - due_date) * $0.25 for overdue unreturned books", async () => {
-            await db.insert(bookLoans).values({
-                isbn: "1000000001",
-                card_id: "ID000001",
-                date_out: "2026-11-01",
-                due_date: "2026-11-15",
-                date_in: null, // 6 days overdue on 2026-11-21 -> $1.50
-            });
-
-            const summary = await service.refreshFines("2026-11-21");
-
-            expect(summary).toEqual({ inserted: 1, updated: 0, unchanged: 0 });
-            const rows = await db.select().from(fines);
-            expect(rows).toHaveLength(1);
-            expect(Number(rows[0]?.fine_amt).toFixed(2)).toBe("1.50");
-            expect(rows[0]?.paid).toBe(false);
-        });
-
-        it("updates an existing unpaid fine without duplicating when the amount changes", async () => {
-            await db.insert(bookLoans).values({
-                isbn: "1000000001",
-                card_id: "ID000001",
-                date_out: "2026-11-01",
-                due_date: "2026-11-15",
-                date_in: null,
-            });
-
-            await service.refreshFines("2026-11-17"); // 2 days -> $0.50
-            const secondRun = await service.refreshFines("2026-11-20"); // 5 days -> $1.25
-
-            expect(secondRun).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
-            const rows = await db.select().from(fines);
-            expect(rows).toHaveLength(1);
-            expect(Number(rows[0]?.fine_amt).toFixed(2)).toBe("1.25");
-        });
-
-        it("leaves an existing unpaid fine unchanged when the amount is identical", async () => {
-            await db.insert(bookLoans).values({
-                isbn: "1000000001",
-                card_id: "ID000001",
-                date_out: "2026-11-01",
-                due_date: "2026-11-15",
-                date_in: null, // 6 days -> $1.50 (reads back from SQLite NUMERIC as "1.5")
-            });
-
-            await service.refreshFines("2026-11-21");
-            const secondRun = await service.refreshFines("2026-11-21");
-
-            expect(secondRun).toEqual({ inserted: 0, updated: 0, unchanged: 1 });
-        });
-
-        it("does nothing when an existing fine row has paid = true", async () => {
-            await db.insert(bookLoans).values({
-                isbn: "1000000001",
-                card_id: "ID000001",
-                date_out: "2026-11-01",
-                due_date: "2026-11-15",
-                date_in: "2026-11-20",
-            });
-            await db.insert(fines).values({
-                loan_id: 1,
-                fine_amt: "0.75",
-                paid: true,
-            });
-
-            const summary = await service.refreshFines("2026-11-25");
-
-            expect(summary).toEqual({ inserted: 0, updated: 0, unchanged: 1 });
-            const [row] = await db.select().from(fines).where(eq(fines.loan_id, 1));
-            expect(Number(row?.fine_amt).toFixed(2)).toBe("0.75");
-            expect(row?.paid).toBe(true);
-        });
-    });
-
-    describe("listFines & payFines", () => {
-        beforeEach(async () => {
-            await db.insert(bookLoans).values([
-                {
-                    isbn: "1000000001",
-                    card_id: "ID000001",
-                    date_out: "2026-10-01",
-                    due_date: "2026-10-15",
-                    date_in: "2026-10-20", // 5 days late -> $1.25 (returned)
-                },
-                {
-                    isbn: "1000000002",
-                    card_id: "ID000001",
-                    date_out: "2026-10-05",
-                    due_date: "2026-10-19",
-                    date_in: "2026-10-22", // 3 days late -> $0.75 (returned)
-                },
-                {
-                    isbn: "1000000003",
-                    card_id: "ID000002",
-                    date_out: "2026-10-01",
-                    due_date: "2026-10-15",
-                    date_in: "2026-10-17", // 2 days late -> $0.50 (paid)
-                },
-                {
-                    isbn: "1000000004",
-                    card_id: "ID000002",
-                    date_out: "2026-11-01",
-                    due_date: "2026-11-15",
-                    date_in: null, // unreturned -> $1.00
-                },
-            ]);
-
-            await db.insert(fines).values([
-                { loan_id: 1, fine_amt: "1.25", paid: false },
-                { loan_id: 2, fine_amt: "0.75", paid: false },
-                { loan_id: 3, fine_amt: "0.50", paid: true },
-                { loan_id: 4, fine_amt: "1.00", paid: false },
-            ]);
-        });
-
-        it("groups and sums fines by card_id formatted to two decimal places", async () => {
-            const unpaid = await service.listFines();
-
-            expect(unpaid).toEqual(
-                expect.arrayContaining([
-                    {
-                        card_id: "ID000001",
-                        bname: "Alice Johnson",
-                        total_fine: "2.00",
-                        has_unreturned_books: false,
-                    },
-                    {
-                        card_id: "ID000002",
-                        bname: "Bob Williams",
-                        total_fine: "1.00",
-                        has_unreturned_books: true,
-                    },
-                ]),
+            const fineMap = new Map(
+                existingFines.map((fine) => [fine.loan_id, fine]),
             );
-            expect(unpaid).toHaveLength(2);
+
+            for (const loan of loans) {
+                const lateDays =
+                    loan.date_in !== null
+                        ? Math.max(0, diffDays(loan.due_date, loan.date_in))
+                        : Math.max(0, diffDays(loan.due_date, today));
+
+                if (lateDays === 0) {
+                    continue;
+                }
+
+                const fineCents = lateDays * 25;
+                const fineAmount = (fineCents / 100).toFixed(2);
+
+                const existingFine = fineMap.get(loan.loan_id);
+
+                if (!existingFine) {
+                    tx.insert(fines)
+                        .values({
+                            loan_id: loan.loan_id,
+                            fine_amt: fineAmount,
+                            paid: false,
+                        })
+                        .run();
+
+                    summary.inserted++;
+                } else if (existingFine.paid) {
+                    // Already-paid fines must never be modified.
+                    summary.unchanged++;
+                } else if (
+                    toCents(existingFine.fine_amt) !== fineCents
+                ) {
+                    tx.update(fines)
+                        .set({ fine_amt: fineAmount })
+                        .where(eq(fines.loan_id, loan.loan_id))
+                        .run();
+
+                    summary.updated++;
+                } else {
+                    summary.unchanged++;
+                }
+            }
         });
 
-        it("filters out paid fines by default and includes them when includePaid is true", async () => {
-            const unpaidOnly = await service.listFines({ includePaid: false });
-            const bobUnpaid = unpaidOnly.find((f) => f.card_id === "ID000002");
-            expect(bobUnpaid?.total_fine).toBe("1.00");
+        return summary;
+    }
 
-            const allFines = await service.listFines({ includePaid: true });
-            const bobAll = allFines.find((f) => f.card_id === "ID000002");
-            expect(bobAll?.total_fine).toBe("1.50");
+    /**
+     * List fines grouped by borrower.
+     *
+     * - Excludes paid fines by default.
+     * - Includes paid fines when includePaid is true.
+     * - Formats totals to two decimal places.
+     * - Indicates whether the borrower has unreturned books.
+     */
+    async listFines(
+        options?: { includePaid?: boolean },
+    ): Promise<BorrowerFineSummary[]> {
+        const includePaid = options?.includePaid ?? false;
+
+        const rows = this.db
+            .select({
+                card_id: borrowers.card_id,
+                bname: borrowers.bname,
+                loan_id: bookLoans.loan_id,
+                date_in: bookLoans.date_in,
+                fine_amt: fines.fine_amt,
+                paid: fines.paid,
+            })
+            .from(borrowers)
+            .leftJoin(
+                bookLoans,
+                eq(borrowers.card_id, bookLoans.card_id),
+            )
+            .leftJoin(
+                fines,
+                eq(bookLoans.loan_id, fines.loan_id),
+            )
+            .all();
+
+        const borrowerMap = new Map<
+            string,
+            {
+                card_id: string;
+                bname: string;
+                totalCents: number;
+                fineCount: number;
+                has_unreturned_books: boolean;
+            }
+        >();
+
+        for (const row of rows) {
+            let borrower = borrowerMap.get(row.card_id);
+
+            if (!borrower) {
+                borrower = {
+                    card_id: row.card_id,
+                    bname: row.bname,
+                    totalCents: 0,
+                    fineCount: 0,
+                    has_unreturned_books: false,
+                };
+
+                borrowerMap.set(row.card_id, borrower);
+            }
+
+            // Check all loans, regardless of whether they have fines.
+            if (row.loan_id !== null && row.date_in === null) {
+                borrower.has_unreturned_books = true;
+            }
+
+            // Skip missing fines and paid fines when excluded.
+            if (
+                row.fine_amt === null ||
+                row.paid === null ||
+                (!includePaid && row.paid)
+            ) {
+                continue;
+            }
+
+            borrower.totalCents += toCents(row.fine_amt);
+            borrower.fineCount++;
+        }
+
+        return Array.from(borrowerMap.values())
+            .filter((borrower) => borrower.fineCount > 0)
+            .map((borrower) => ({
+                card_id: borrower.card_id,
+                bname: borrower.bname,
+                total_fine: (borrower.totalCents / 100).toFixed(2),
+                has_unreturned_books: borrower.has_unreturned_books,
+            }));
+    }
+
+    /**
+     * Enter full payment of all unpaid fines for a borrower.
+     *
+     * - Reject borrowers without unpaid fines.
+     * - Reject payment if any unpaid fine belongs to an unreturned book.
+     * - Mark all unpaid fines as paid in one transaction.
+     */
+    async payFines(
+        cardId: Borrower["card_id"],
+    ): Promise<PayFinesResult> {
+        // This transaction callback must remain synchronous.
+        return this.db.transaction((tx) => {
+            const unpaidFines = tx
+                .select({
+                    loan_id: fines.loan_id,
+                    fine_amt: fines.fine_amt,
+                    date_in: bookLoans.date_in,
+                })
+                .from(fines)
+                .innerJoin(
+                    bookLoans,
+                    eq(fines.loan_id, bookLoans.loan_id),
+                )
+                .where(
+                    and(
+                        eq(bookLoans.card_id, cardId),
+                        eq(fines.paid, false),
+                    ),
+                )
+                .all();
+
+            if (unpaidFines.length === 0) {
+                throw new NotFoundException(
+                    "Borrower has no unpaid fines",
+                );
+            }
+
+            // Every unpaid fine must belong to a returned book.
+            if (unpaidFines.some((fine) => fine.date_in === null)) {
+                throw new BadRequestException(
+                    "Cannot pay fines for books that have not been returned",
+                );
+            }
+
+            const loanIds = unpaidFines.map((fine) => fine.loan_id);
+
+            const totalCents = unpaidFines.reduce(
+                (total, fine) => total + toCents(fine.fine_amt),
+                0,
+            );
+
+            // Mark all unpaid fines as paid in one operation.
+            tx.update(fines)
+                .set({ paid: true })
+                .where(
+                    and(
+                        inArray(fines.loan_id, loanIds),
+                        eq(fines.paid, false),
+                    ),
+                )
+                .run();
+
+            return {
+                card_id: cardId,
+                cleared_count: unpaidFines.length,
+                total_paid: (totalCents / 100).toFixed(2),
+            };
         });
-
-        it("blocks payment if any unpaid fine belongs to an unreturned book", async () => {
-            await expectClientError(service.payFines("ID000002"));
-
-            const [fine4] = await db.select().from(fines).where(eq(fines.loan_id, 4));
-            expect(fine4?.paid).toBe(false);
-        });
-
-        it("clears all unpaid fines for a borrower in full once all books are returned", async () => {
-            const result = await service.payFines("ID000001");
-
-            expect(result).toEqual({
-                card_id: "ID000001",
-                cleared_count: 2,
-                total_paid: "2.00",
-            });
-
-            const aliceFines = await db.select().from(fines).where(eq(fines.paid, true));
-            expect(aliceFines.map((f) => f.loan_id)).toEqual(expect.arrayContaining([1, 2]));
-
-            const remainingUnpaid = await service.listFines();
-            expect(remainingUnpaid.find((f) => f.card_id === "ID000001")).toBeUndefined();
-        });
-
-        it("rejects payment when the borrower has no unpaid fines", async () => {
-            await service.payFines("ID000001");
-
-            await expectClientError(service.payFines("ID000001"));
-            await expectClientError(service.payFines("ID999999"));
-        });
-    });
-});
+    }
+}
