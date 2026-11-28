@@ -2,6 +2,7 @@ import { type AppDatabase, borrowers, createDatabase } from "@cs-4347/db";
 import { BadRequestException, ConflictException } from "@nestjs/common";
 import { DrizzleModule } from "@nestjs/drizzle";
 import { Test, type TestingModule } from "@nestjs/testing";
+import { eq } from "drizzle-orm";
 import { BorrowersService, type CreateBorrowerDto } from "./borrowers.service";
 
 const validInput: CreateBorrowerDto = {
@@ -10,6 +11,8 @@ const validInput: CreateBorrowerDto = {
     address: "800 W Campbell Rd, Richardson, TX",
     phone: "(972) 883-2111",
 };
+
+const { ssn: _validSsn, ...validPublicFields } = validInput;
 
 describe("BorrowersService", () => {
     let db: AppDatabase;
@@ -37,11 +40,18 @@ describe("BorrowersService", () => {
     });
 
     describe("createBorrower", () => {
-        it("creates a borrower with all fields and an auto-generated card_id", async () => {
+        it("creates a borrower with an auto-generated card_id and omits ssn from the response", async () => {
             const created = await service.createBorrower(validInput);
 
-            expect(created).toEqual({ card_id: "ID000001", ...validInput });
+            expect(created).toEqual({ card_id: "ID000001", ...validPublicFields });
+            expect("ssn" in created).toBe(false);
             expect(await service.findByCardId("ID000001")).toEqual(created);
+
+            const [stored] = await db
+                .select()
+                .from(borrowers)
+                .where(eq(borrowers.card_id, "ID000001"));
+            expect(stored?.ssn).toBe(validInput.ssn);
         });
 
         it("allows creating a borrower without a phone number (phone = null)", async () => {
@@ -62,12 +72,19 @@ describe("BorrowersService", () => {
                 phone: " 555-0100 ",
             });
 
-            expect(created).toMatchObject({
+            expect(created).toEqual({
+                card_id: "ID000001",
                 bname: "Jane Doe",
-                ssn: "123-45-6789",
                 address: "1 Main St",
                 phone: "555-0100",
             });
+            expect("ssn" in created).toBe(false);
+
+            const [stored] = await db
+                .select()
+                .from(borrowers)
+                .where(eq(borrowers.card_id, "ID000001"));
+            expect(stored?.ssn).toBe("123-45-6789");
         });
 
         it("generates sequential card_id values compatible with ID000001-ID001000", async () => {
@@ -97,60 +114,71 @@ describe("BorrowersService", () => {
                 );
             }
 
-            expect(await service.findAll()).toEqual([]);
+            expect(await db.select().from(borrowers)).toEqual([]);
         });
 
-        it("rejects duplicate SSNs with a helpful ConflictException", async () => {
+        it("rejects duplicate SSNs with a ConflictException without echoing the SSN", async () => {
             await service.createBorrower(validInput);
 
-            const attempt = service.createBorrower({ ...validInput, bname: "Someone Else" });
-            await expect(attempt).rejects.toThrow(ConflictException);
-            await expect(
-                service.createBorrower({ ...validInput, bname: "Someone Else" }),
-            ).rejects.toThrow(/ID000001/);
+            try {
+                await service.createBorrower({ ...validInput, bname: "Someone Else" });
+                expect.unreachable("Expected ConflictException");
+            } catch (err) {
+                expect(err).toBeInstanceOf(ConflictException);
+                expect((err as ConflictException).message).toContain("ID000001");
+                expect((err as ConflictException).message).not.toContain(validInput.ssn);
+            }
 
-            expect(await service.findAll()).toHaveLength(1);
+            expect(await db.select().from(borrowers)).toHaveLength(1);
         });
     });
 
-    describe("findAll", () => {
+    describe("search", () => {
         beforeEach(async () => {
             await db.insert(borrowers).values([
-                { card_id: "ID000002", ssn: "1", bname: "Eric Warren", address: "x" },
-                { card_id: "ID000001", ssn: "2", bname: "Mark Morgan", address: "x" },
-                { card_id: "ID000010", ssn: "3", bname: "Sarah Markham", address: "x" },
+                { card_id: "ID000002", ssn: "111-11-1111", bname: "Eric Warren", address: "x" },
+                { card_id: "ID000001", ssn: "222-22-2222", bname: "Mark Morgan", address: "x" },
+                { card_id: "ID000010", ssn: "333-33-3333", bname: "Sarah Markham", address: "x" },
             ]);
         });
 
-        it("returns all borrowers ordered by card_id when no query is given", async () => {
-            const ids = (await service.findAll()).map((b) => b.card_id);
-            expect(ids).toEqual(["ID000001", "ID000002", "ID000010"]);
-            expect((await service.findAll("   ")).map((b) => b.card_id)).toEqual(ids);
+        it("requires a non-blank query so the entire borrowers table is not returned", async () => {
+            await expect(service.search()).rejects.toThrow(BadRequestException);
+            await expect(service.search("")).rejects.toThrow(BadRequestException);
+            await expect(service.search("   ")).rejects.toThrow(BadRequestException);
         });
 
-        it("filters by case-insensitive substring of name", async () => {
-            const result = await service.findAll("MARK");
-            expect(result.map((b) => b.card_id)).toEqual(["ID000001", "ID000010"]);
+        it("filters by case-insensitive substring of name and omits ssn", async () => {
+            const result = await service.search("MARK");
+            expect(result).toEqual([
+                { card_id: "ID000001", bname: "Mark Morgan", address: "x", phone: null },
+                { card_id: "ID000010", bname: "Sarah Markham", address: "x", phone: null },
+            ]);
+            for (const borrower of result) {
+                expect("ssn" in borrower).toBe(false);
+            }
         });
 
         it("filters by card_id substring", async () => {
-            expect((await service.findAll("00001")).map((b) => b.card_id)).toEqual([
+            expect((await service.search("00001")).map((b) => b.card_id)).toEqual([
                 "ID000001",
                 "ID000010",
             ]);
         });
 
         it("treats LIKE wildcards in the query literally", async () => {
-            expect(await service.findAll("%")).toEqual([]);
-            expect(await service.findAll("_")).toEqual([]);
+            expect(await service.search("%")).toEqual([]);
+            expect(await service.search("_")).toEqual([]);
         });
     });
 
     describe("findByCardId", () => {
-        it("returns the borrower or undefined when absent", async () => {
+        it("returns the borrower without ssn, or undefined when absent", async () => {
             const created = await service.createBorrower(validInput);
+            const found = await service.findByCardId(created.card_id);
 
-            expect(await service.findByCardId(created.card_id)).toEqual(created);
+            expect(found).toEqual(created);
+            expect(found && "ssn" in found).toBe(false);
             expect(await service.findByCardId("ID999999")).toBeUndefined();
         });
     });

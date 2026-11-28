@@ -51,7 +51,7 @@ Available API endpoints:
 
 - `GET /api/books?q=<query>` — search books by ISBN, title, or author
 - `POST /api/borrowers` — create a new borrower (`{ bname, ssn, address, phone? }`)
-- `GET /api/borrowers?q=<query>` / `GET /api/borrowers/:cardId` — list, search, or fetch borrowers
+- `GET /api/borrowers?q=<query>` / `GET /api/borrowers/:cardId` — search borrowers (`q` required) or fetch a borrower by card ID (SSN omitted)
 - `POST /api/loans/checkout` — check out a book (`{ isbn, card_id }`)
 - `GET /api/loans?q=<query>` — search active loans by ISBN, `card_id`, or borrower name
 - `POST /api/loans/checkin` — check in 1–3 loans (`{ loan_ids }`)

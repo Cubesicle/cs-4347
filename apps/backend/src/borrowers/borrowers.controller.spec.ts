@@ -1,5 +1,5 @@
 import { type AppDatabase, createDatabase } from "@cs-4347/db";
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { DrizzleModule } from "@nestjs/drizzle";
 import { Test, type TestingModule } from "@nestjs/testing";
 import { BorrowersController } from "./borrowers.controller";
@@ -32,15 +32,24 @@ describe("BorrowersController", () => {
     });
 
     describe("POST /api/borrowers & GET /api/borrowers/:cardId", () => {
-        it("creates and retrieves a borrower by generated card_id", async () => {
+        it("creates and retrieves a borrower by generated card_id without ssn", async () => {
             const created = await controller.create({
                 bname: "Jane Doe",
                 ssn: "123-45-6789",
                 address: "1 Main St, Dallas, TX",
             });
 
-            expect(created.card_id).toBe("ID000001");
-            expect(await controller.findOne(created.card_id)).toEqual(created);
+            expect(created).toEqual({
+                card_id: "ID000001",
+                bname: "Jane Doe",
+                address: "1 Main St, Dallas, TX",
+                phone: null,
+            });
+            expect("ssn" in created).toBe(false);
+
+            const found = await controller.findOne(created.card_id);
+            expect(found).toEqual(created);
+            expect("ssn" in found).toBe(false);
         });
 
         it("throws NotFoundException when card_id does not exist", async () => {
@@ -49,15 +58,23 @@ describe("BorrowersController", () => {
     });
 
     describe("GET /api/borrowers?q=...", () => {
-        it("delegates the search query to BorrowersService.findAll()", async () => {
+        it("rejects missing or blank search queries with BadRequestException", async () => {
+            await controller.create({ bname: "Jane Doe", ssn: "1", address: "x" });
+
+            await expect(controller.search()).rejects.toThrow(BadRequestException);
+            await expect(controller.search("")).rejects.toThrow(BadRequestException);
+            await expect(controller.search("   ")).rejects.toThrow(BadRequestException);
+        });
+
+        it("delegates the search query to BorrowersService.search() and omits ssn", async () => {
             await controller.create({ bname: "Jane Doe", ssn: "1", address: "x" });
             await controller.create({ bname: "John Smith", ssn: "2", address: "x" });
 
-            expect((await controller.findAll()).map((b) => b.bname)).toEqual([
-                "Jane Doe",
-                "John Smith",
+            const results = await controller.search("smith");
+            expect(results).toEqual([
+                { card_id: "ID000002", bname: "John Smith", address: "x", phone: null },
             ]);
-            expect((await controller.findAll("smith")).map((b) => b.bname)).toEqual(["John Smith"]);
+            expect(results.every((b) => !("ssn" in b))).toBe(true);
         });
     });
 });
