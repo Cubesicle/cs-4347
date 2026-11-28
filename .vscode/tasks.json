@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build:backend:dev",
+            "type": "shell",
+            "command": "bun run nx run backend:build:development",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "serve:backend",
+            "type": "shell",
+            "command": "bun run serve:backend",
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "serve:frontend",
+            "type": "shell",
+            "command": "bun run serve:frontend",
+            "isBackground": true,
+            "problemMatcher": []
+        }
+    ]
+}

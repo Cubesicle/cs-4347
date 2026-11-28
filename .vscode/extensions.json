@@ -1,3 +1,10 @@
 {
-    "recommendations": ["nrwl.angular-console"]
+    "recommendations": [
+        "nrwl.angular-console",
+        "biomejs.biome",
+        "oven.bun-vscode",
+        "angular.ng-template",
+        "ms-python.python",
+        "ms-python.mypy-type-checker"
+    ]
 }

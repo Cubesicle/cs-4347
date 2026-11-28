@@ -2,22 +2,37 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "node",
+            "type": "bun",
             "request": "launch",
-            "name": "Debug backend with Nx",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["nx", "serve", "backend"],
+            "name": "Debug backend (Bun)",
+            "program": "${workspaceFolder}/dist/apps/backend/main.js",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build:backend:dev",
             "env": {
-                "NODE_OPTIONS": "--inspect=9229"
+                "NODE_ENV": "development"
             },
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "skipFiles": ["<node_internals>/**"],
-            "sourceMaps": true,
-            "outFiles": [
-                "${workspaceFolder}/apps/backend/dist/**/*.(m|c|)js",
-                "!**/node_modules/**"
-            ]
+            "watchMode": false
+        },
+        {
+            "type": "bun",
+            "request": "attach",
+            "name": "Attach to backend (Bun Inspector)",
+            "url": "${input:bunInspectorUrl}"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Debug frontend (Chrome)",
+            "url": "http://localhost:4200",
+            "webRoot": "${workspaceFolder}/apps/frontend"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "bunInspectorUrl",
+            "type": "promptString",
+            "description": "Bun inspector WebSocket URL printed by serve:backend (e.g. ws://localhost:9229/<id>)",
+            "default": "ws://localhost:9229/"
         }
     ]
 }
